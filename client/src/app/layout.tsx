@@ -10,37 +10,17 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const isValidClerkKey = Boolean(
-    clerkKey &&
-    clerkKey.startsWith('pk_') &&
-    !clerkKey.includes('sample') &&
-    !clerkKey.includes('placeholder')
-  );
-
-  const appContent = (
-    <AuthProvider>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-        {children}
-      </ThemeProvider>
-    </AuthProvider>
-  );
-
-  if (!isValidClerkKey) {
-    return (
-      <html lang="en" suppressHydrationWarning className="h-full antialiased">
-        <body className="min-h-full flex flex-col font-sans transition-colors duration-200">
-          {appContent}
-        </body>
-      </html>
-    );
-  }
+  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
   return (
     <ClerkProvider publishableKey={clerkKey}>
       <html lang="en" suppressHydrationWarning className="h-full antialiased">
         <body className="min-h-full flex flex-col font-sans transition-colors duration-200">
-          {appContent}
+          <AuthProvider>
+            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+              {children}
+            </ThemeProvider>
+          </AuthProvider>
         </body>
       </html>
     </ClerkProvider>

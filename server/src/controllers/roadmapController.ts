@@ -31,7 +31,7 @@ export const getRoadmap = async (req: AuthenticatedRequest, res: Response): Prom
     if (!roadmap) {
       let targetRole = 'Full Stack Developer';
       if (isMongoConnected) {
-        const profile = await UserProfile.findOne({ clerkId: userId });
+        const profile = await UserProfile.findOne({ $or: [{ clerkUserId: userId }, { clerkId: userId }] });
         if (profile && profile.targetRole) {
           targetRole = profile.targetRole;
         }
@@ -77,7 +77,7 @@ export const generateRoadmap = async (req: AuthenticatedRequest, res: Response):
     let currentSkillNames: string[] = [];
 
     if (isMongoConnected) {
-      const profile = await UserProfile.findOne({ clerkId: userId });
+      const profile = await UserProfile.findOne({ $or: [{ clerkUserId: userId }, { clerkId: userId }] });
       if (!targetRole && profile) targetRole = profile.targetRole;
       const skills = await Skill.find({ userId });
       currentSkillNames = skills.map((s) => s.name);

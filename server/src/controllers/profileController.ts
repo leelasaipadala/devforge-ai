@@ -20,7 +20,7 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response): Prom
     let profile: any = null;
 
     if (isMongoConnected) {
-      profile = await UserProfile.findOne({ clerkId: userId });
+      profile = await UserProfile.findOne({ $or: [{ clerkUserId: userId }, { clerkId: userId }] });
     } else {
       profile = memoryProfiles.get(userId);
     }
@@ -28,6 +28,7 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response): Prom
     if (!profile) {
       // Create default initial profile
       profile = {
+        clerkUserId: userId,
         clerkId: userId,
         email: req.userEmail || 'user@devforge.ai',
         name: req.userName || 'DevForge Engineer',
@@ -115,10 +116,14 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
     let profile: any = null;
 
     if (isMongoConnected) {
-      profile = await UserProfile.findOneAndUpdate({ clerkId: userId }, { $set: updates }, { new: true, upsert: true });
+      profile = await UserProfile.findOneAndUpdate(
+        { $or: [{ clerkUserId: userId }, { clerkId: userId }] },
+        { $set: { ...updates, clerkUserId: userId, clerkId: userId } },
+        { new: true, upsert: true }
+      );
     } else {
       const existing = memoryProfiles.get(userId) || {};
-      profile = { ...existing, ...updates, clerkId: userId };
+      profile = { ...existing, ...updates, clerkUserId: userId, clerkId: userId };
       memoryProfiles.set(userId, profile);
     }
 
@@ -146,6 +151,7 @@ export const completeOnboarding = async (req: AuthenticatedRequest, res: Respons
     } = req.body;
 
     const profileData = {
+      clerkUserId: userId,
       clerkId: userId,
       email: req.userEmail || 'user@devforge.ai',
       name: name || req.userName || 'DevForge Developer',
@@ -172,7 +178,11 @@ export const completeOnboarding = async (req: AuthenticatedRequest, res: Respons
     let profile: any = null;
 
     if (isMongoConnected) {
-      profile = await UserProfile.findOneAndUpdate({ clerkId: userId }, { $set: profileData }, { new: true, upsert: true });
+      profile = await UserProfile.findOneAndUpdate(
+        { $or: [{ clerkUserId: userId }, { clerkId: userId }] },
+        { $set: profileData },
+        { new: true, upsert: true }
+      );
 
       // Save initial skills if provided
       const allSelectedSkills = [

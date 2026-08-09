@@ -6,6 +6,7 @@ export interface AuthenticatedRequest extends Request {
   userId?: string;
   userEmail?: string;
   userName?: string;
+  isDemo?: boolean;
 }
 
 const clerkClient = config.clerkSecretKey ? createClerkClient({ secretKey: config.clerkSecretKey }) : null;
@@ -18,8 +19,7 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
       res.status(401).json({
         success: false,
         code: 'UNAUTHENTICATED',
-        message: 'Clerk authentication required. Please sign in via Clerk.',
-        clerkConfigured: Boolean(config.clerkSecretKey),
+        message: 'Authentication token required. Please sign in.',
       });
       return;
     }
@@ -30,34 +30,55 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
       res.status(401).json({
         success: false,
         code: 'INVALID_TOKEN',
-        message: 'Clerk Bearer token is empty or invalid. Please sign in via Clerk.',
+        message: 'Bearer token is empty or invalid. Please sign in.',
       });
       return;
     }
 
-    // Verify token using Clerk Backend SDK if secret key is configured
+    // 1. Check if token is explicitly a Demo Session token
+    if (token.startsWith('demo_session_') || token.startsWith('demo_user_') || token.startsWith('demo_')) {
+      req.userId = token;
+      req.userEmail = (req.headers['x-user-email'] as string) || 'demo@devforge.ai';
+      req.userName = (req.headers['x-user-name'] as string) || 'Demo Developer';
+      req.isDemo = true;
+      return next();
+    }
+
+    // 2. Real Clerk Token Verification
     if (config.clerkSecretKey) {
       try {
         const decoded = await verifyToken(token, { secretKey: config.clerkSecretKey });
         if (decoded && decoded.sub) {
-          req.userId = decoded.sub; // Scoped Clerk User ID
+          req.userId = decoded.sub; // Scoped real Clerk User ID
+          req.isDemo = false;
           if (clerkClient) {
-            const user = await clerkClient.users.getUser(decoded.sub);
-            req.userEmail = user.emailAddresses[0]?.emailAddress || 'user@devforge.ai';
-            req.userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'DevForge Engineer';
+            try {
+              const user = await clerkClient.users.getUser(decoded.sub);
+              req.userEmail = user.emailAddresses[0]?.emailAddress || req.userEmail || 'user@devforge.ai';
+              req.userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || req.userName || 'DevForge Engineer';
+            } catch {
+              // Ignore metadata fetch error, session sub is verified
+            }
           }
           return next();
         }
       } catch (verifyErr: any) {
-        console.warn(`[Clerk Verification Notice] Token validation: ${verifyErr?.message}`);
+        console.warn(`[Clerk Verification Notice] Token validation failed: ${verifyErr?.message}`);
+        res.status(401).json({
+          success: false,
+          code: 'CLERK_AUTH_FAILED',
+          message: 'Your Clerk authentication session expired or is invalid. Please sign in again.',
+        });
+        return;
       }
     }
 
-    // Direct Clerk / Session User ID Token pass-through (e.g. user_... or demo_user_...)
-    if (token.startsWith('user_') || token.startsWith('demo_user_') || token.startsWith('demo_')) {
+    // 3. Fallback for test/local environment when token is a raw Clerk User ID (e.g. user_...)
+    if (token.startsWith('user_')) {
       req.userId = token;
       req.userEmail = (req.headers['x-user-email'] as string) || 'engineer@devforge.ai';
       req.userName = (req.headers['x-user-name'] as string) || 'DevForge Engineer';
+      req.isDemo = false;
       return next();
     }
 
@@ -74,3 +95,4 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
     });
   }
 };
+

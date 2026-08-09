@@ -31,7 +31,7 @@ export const chatWithCoach = async (req: AuthenticatedRequest, res: Response): P
     let history: { role: string; content: string }[] = [];
 
     if (isMongoConnected) {
-      const profile = await UserProfile.findOne({ clerkId: userId });
+      const profile = await UserProfile.findOne({ $or: [{ clerkUserId: userId }, { clerkId: userId }] });
       if (profile) {
         userContext.name = profile.name;
         userContext.targetRole = profile.targetRole;

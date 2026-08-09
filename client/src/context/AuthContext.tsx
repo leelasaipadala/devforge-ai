@@ -1,6 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useUser, useAuth as useClerkAuth, useClerk } from '@clerk/nextjs';
+import { ApiClient } from '@/lib/api';
 
 export interface User {
   id: string;
@@ -18,68 +20,156 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  isClerkActive: boolean;
-  isDemoUsed: boolean;
+  isClerkAuthenticated: boolean;
+  isDemo: boolean;
+  isLoading: boolean;
   signInDemo: (email?: string, name?: string, targetRole?: string) => boolean;
   signOut: () => void;
   updateUser: (updatedData: Partial<User>) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
-  isClerkActive: false,
-  isDemoUsed: false,
+  isClerkAuthenticated: false,
+  isDemo: false,
+  isLoading: true,
   signInDemo: () => false,
   signOut: () => {},
   updateUser: () => {},
+  refreshProfile: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isDemoUsed, setIsDemoUsed] = useState<boolean>(false);
+  // Clerk Hooks — always available because ClerkProvider wraps the app
+  const { user: clerkUser, isLoaded: isClerkUserLoaded, isSignedIn: isClerkSignedIn } = useUser();
+  const { getToken } = useClerkAuth();
+  const { signOut: clerkSignOut } = useClerk();
 
-  const clerkKey = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY : undefined;
-  const isClerkActive = Boolean(clerkKey && clerkKey.startsWith('pk_') && !clerkKey.includes('sample'));
+  // Local Demo User State
+  const [demoUser, setDemoUser] = useState<User | null>(null);
+  const [backendProfile, setBackendProfile] = useState<Partial<User> | null>(null);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
+  // Setup ApiClient token getter dynamically for Clerk
+  useEffect(() => {
+    ApiClient.setTokenGetter(async () => {
+      if (isClerkSignedIn) {
+        try {
+          const token = await getToken();
+          if (token) return token;
+        } catch {
+          // Clerk token retrieval failed — do NOT fall back
+        }
+      }
+      return null;
+    });
+  }, [isClerkSignedIn, getToken]);
+
+  // One-time cleanup: remove legacy localStorage keys that should never exist
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const demoFlag = localStorage.getItem('devforge_demo_used') === 'true';
-      setIsDemoUsed(demoFlag);
-
-      const storedToken = localStorage.getItem('devforge_auth_token');
-      const storedName = localStorage.getItem('devforge_user_name');
-      const storedEmail = localStorage.getItem('devforge_user_email');
-      const storedRole = localStorage.getItem('devforge_user_role');
-      const storedGithub = localStorage.getItem('devforge_user_github');
-
-      if (storedName && storedEmail) {
-        setUser({
-          id: storedToken || 'user_devforge_session_01',
-          name: storedName,
-          email: storedEmail,
-          targetRole: storedRole || 'Full Stack Developer',
-          githubUsername: storedGithub || '',
-          onboardingCompleted: true,
-          isDemo: storedEmail === 'demo@devforge.ai',
-        });
-      }
+      localStorage.removeItem('devforge_user_name');
+      localStorage.removeItem('devforge_user_email');
+      localStorage.removeItem('devforge_user_role');
+      localStorage.removeItem('devforge_user_github');
+      localStorage.removeItem('devforge_auth_token');
+      localStorage.removeItem('devforge_demo_used');
+      localStorage.removeItem('clerk_session_token');
     }
   }, []);
 
+  // Initialize Demo session from localStorage if user explicitly started one
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // If a real Clerk user is signed in, discard any stale demo session
+      if (isClerkSignedIn) {
+        localStorage.removeItem('devforge_demo_session');
+        setDemoUser(null);
+        setIsInitializing(false);
+        return;
+      }
+
+      const storedDemo = localStorage.getItem('devforge_demo_session');
+      if (storedDemo) {
+        try {
+          const parsed = JSON.parse(storedDemo);
+          if (parsed && parsed.user) {
+            setDemoUser(parsed.user);
+          }
+        } catch {
+          localStorage.removeItem('devforge_demo_session');
+        }
+      }
+      setIsInitializing(false);
+    }
+  }, [isClerkSignedIn]);
+
+  // Fetch backend MongoDB profile when Clerk user is signed in
+  const fetchBackendProfile = useCallback(async () => {
+    if (!isClerkSignedIn) return;
+    try {
+      const data = await ApiClient.get<{ success: boolean; profile: any }>('/profile');
+      if (data && data.success && data.profile) {
+        setBackendProfile({
+          targetRole: data.profile.targetRole || 'Full Stack Developer',
+          experienceLevel: data.profile.experienceLevel || 'Undergraduate Student',
+          githubUsername: data.profile.githubUsername || '',
+          onboardingCompleted: data.profile.onboardingCompleted ?? false,
+          avatarUrl: data.profile.avatarUrl || '',
+        });
+      }
+    } catch (err) {
+      console.warn('[AuthContext] Backend profile sync note:', err);
+    }
+  }, [isClerkSignedIn]);
+
+  useEffect(() => {
+    if (isClerkSignedIn) {
+      fetchBackendProfile();
+    }
+  }, [isClerkSignedIn, fetchBackendProfile]);
+
+  // Determine active User identity
+  let activeUser: User | null = null;
+  let isDemoMode = false;
+
+  if (isClerkSignedIn && clerkUser) {
+    // REAL CLERK USER Identity — this is the single source of truth
+    isDemoMode = false;
+    const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress || '';
+    const fullName = clerkUser.fullName || `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || primaryEmail.split('@')[0] || 'Developer';
+
+    activeUser = {
+      id: clerkUser.id,
+      name: fullName,
+      email: primaryEmail,
+      targetRole: backendProfile?.targetRole || 'Full Stack Developer',
+      avatarUrl: clerkUser.imageUrl || backendProfile?.avatarUrl,
+      experienceLevel: backendProfile?.experienceLevel || 'Undergraduate Student',
+      githubUsername: backendProfile?.githubUsername || '',
+      onboardingCompleted: backendProfile?.onboardingCompleted ?? false,
+      isDemo: false,
+    };
+  } else if (demoUser) {
+    // EXPLICIT DEMO USER Identity — only when user explicitly clicked "Try Demo"
+    isDemoMode = true;
+    activeUser = demoUser;
+  }
+
+  /**
+   * signInDemo: ONLY called when user explicitly clicks "Try Demo Account".
+   * NEVER called as a fallback for failed Clerk auth.
+   */
   const signInDemo = (
     email = 'demo@devforge.ai',
     name = 'Demo Developer',
     targetRole = 'Full Stack Developer'
   ): boolean => {
     if (typeof window !== 'undefined') {
-      const demoFlag = localStorage.getItem('devforge_demo_used') === 'true';
-      if (demoFlag) {
-        return false;
-      }
-
-      const demoUser: User = {
-        id: `demo_user_${Date.now()}`,
+      const newDemoUser: User = {
+        id: `demo_session_${Date.now()}`,
         name,
         email,
         targetRole,
@@ -87,57 +177,74 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isDemo: true,
       };
 
-      setUser(demoUser);
-      setIsDemoUsed(true);
-
-      localStorage.setItem('devforge_demo_used', 'true');
-      localStorage.setItem('devforge_user_name', name);
-      localStorage.setItem('devforge_user_email', email);
-      localStorage.setItem('devforge_user_role', targetRole);
-      localStorage.setItem('devforge_auth_token', demoUser.id);
+      localStorage.setItem(
+        'devforge_demo_session',
+        JSON.stringify({
+          user: newDemoUser,
+          token: newDemoUser.id,
+        })
+      );
+      setDemoUser(newDemoUser);
       return true;
     }
     return false;
   };
 
-  const signOut = () => {
-    setUser(null);
-    if (typeof window !== 'undefined') {
-      if (user?.isDemo || user?.email === 'demo@devforge.ai') {
-        localStorage.setItem('devforge_demo_used', 'true');
-        setIsDemoUsed(true);
+  const signOut = async () => {
+    // If Clerk user is signed in, sign out of Clerk
+    if (isClerkSignedIn) {
+      try {
+        await clerkSignOut();
+      } catch (err) {
+        console.warn('[AuthContext] Clerk signOut note:', err);
       }
+    }
 
-      localStorage.removeItem('devforge_user_name');
-      localStorage.removeItem('devforge_user_email');
-      localStorage.removeItem('devforge_user_role');
-      localStorage.removeItem('devforge_user_github');
-      localStorage.removeItem('devforge_auth_token');
-      localStorage.removeItem('clerk_session_token');
+    // Clear demo session
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('devforge_demo_session');
+      setDemoUser(null);
+      setBackendProfile(null);
       window.location.href = '/auth/sign-in';
     }
   };
 
   const updateUser = (updatedData: Partial<User>) => {
-    setUser((prev) => (prev ? { ...prev, ...updatedData } : null));
-    if (typeof window !== 'undefined') {
-      if (updatedData.name) localStorage.setItem('devforge_user_name', updatedData.name);
-      if (updatedData.email) localStorage.setItem('devforge_user_email', updatedData.email);
-      if (updatedData.targetRole) localStorage.setItem('devforge_user_role', updatedData.targetRole);
-      if (updatedData.githubUsername !== undefined) localStorage.setItem('devforge_user_github', updatedData.githubUsername);
+    if (isDemoMode && demoUser) {
+      const updatedDemo = { ...demoUser, ...updatedData };
+      setDemoUser(updatedDemo);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'devforge_demo_session',
+          JSON.stringify({
+            user: updatedDemo,
+            token: updatedDemo.id,
+          })
+        );
+      }
+    } else {
+      setBackendProfile((prev) => ({ ...prev, ...updatedData }));
     }
   };
+
+  const refreshProfile = async () => {
+    await fetchBackendProfile();
+  };
+
+  const isLoading = isInitializing || !isClerkUserLoaded;
 
   return (
     <AuthContext.Provider
       value={{
-        user,
-        isAuthenticated: Boolean(user),
-        isClerkActive,
-        isDemoUsed,
+        user: activeUser,
+        isAuthenticated: Boolean(activeUser),
+        isClerkAuthenticated: Boolean(isClerkSignedIn),
+        isDemo: isDemoMode,
+        isLoading,
         signInDemo,
         signOut,
         updateUser,
+        refreshProfile,
       }}
     >
       {children}
@@ -146,5 +253,3 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-

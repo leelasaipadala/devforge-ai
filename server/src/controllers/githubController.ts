@@ -15,7 +15,7 @@ export const analyzeGitHubProfile = async (req: AuthenticatedRequest, res: Respo
     const userToken = req.headers['x-github-token'] as string;
 
     if (!username && isMongoConnected) {
-      const userProf = await UserProfile.findOne({ clerkId: userId });
+      const userProf = await UserProfile.findOne({ $or: [{ clerkUserId: userId }, { clerkId: userId }] });
       if (userProf && userProf.githubUsername) {
         username = userProf.githubUsername;
       }
@@ -33,7 +33,7 @@ export const analyzeGitHubProfile = async (req: AuthenticatedRequest, res: Respo
 
     if (isMongoConnected) {
       profileDoc = await GitHubProfile.findOneAndUpdate({ userId }, { $set: githubData }, { new: true, upsert: true });
-      await UserProfile.findOneAndUpdate({ clerkId: userId }, { $set: { githubUsername: username } });
+      await UserProfile.findOneAndUpdate({ $or: [{ clerkUserId: userId }, { clerkId: userId }] }, { $set: { githubUsername: username } });
 
       await Activity.create({
         userId,

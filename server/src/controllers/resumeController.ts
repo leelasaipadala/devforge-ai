@@ -18,7 +18,7 @@ export const analyzeResume = async (req: AuthenticatedRequest, res: Response): P
     let profileContext: any = null;
 
     if (isMongoConnected) {
-      const profile = await UserProfile.findOne({ clerkId: userId });
+      const profile = await UserProfile.findOne({ $or: [{ clerkUserId: userId }, { clerkId: userId }] });
       if (profile) {
         profileContext = profile;
         if (!targetRoleOverride) targetRole = profile.targetRole;

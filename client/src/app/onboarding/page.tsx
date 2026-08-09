@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Check, ChevronLeft, Search, GraduationCap, Building2, Layers, BookOpen, User } from 'lucide-react';
 import { ApiClient } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const ROLE_CATEGORIES = [
   {
@@ -230,6 +231,8 @@ export default function OnboardingPage() {
     setTargetCompanies(targetCompanies.filter((c) => c !== company));
   };
 
+  const { refreshProfile } = useAuth();
+
   const handleSubmit = async () => {
     setLoading(true);
     try {
@@ -255,6 +258,7 @@ export default function OnboardingPage() {
       };
 
       await ApiClient.post('/profile/onboarding', payload);
+      await refreshProfile();
       router.push('/dashboard');
     } catch (err) {
       console.error('Onboarding submission error:', err);

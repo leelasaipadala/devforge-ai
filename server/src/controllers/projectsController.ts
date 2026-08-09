@@ -136,7 +136,7 @@ export const getAIProjectIdeas = async (req: AuthenticatedRequest, res: Response
     const { GitHubProfile } = await import('../models/GitHubProfile.js');
 
     if (isMongoConnected) {
-      const profile = await UserProfile.findOne({ clerkId: userId });
+      const profile = await UserProfile.findOne({ $or: [{ clerkUserId: userId }, { clerkId: userId }] });
       if (profile) {
         targetRole = profile.targetRole || 'Full Stack Developer';
         experienceLevel = profile.experienceLevel || 'Intermediate';

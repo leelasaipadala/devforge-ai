@@ -126,7 +126,7 @@ export const getSkillGapAnalysis = async (req: AuthenticatedRequest, res: Respon
     let userSkills: any[] = [];
 
     if (isMongoConnected) {
-      const profile = await UserProfile.findOne({ clerkId: userId });
+      const profile = await UserProfile.findOne({ $or: [{ clerkUserId: userId }, { clerkId: userId }] });
       if (profile) targetRole = profile.targetRole;
       userSkills = await Skill.find({ userId });
     } else {

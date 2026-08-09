@@ -117,7 +117,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean; s
                   {user?.name ? user.name.slice(0, 2).toUpperCase() : 'DF'}
                 </div>
                 <div className="flex flex-col truncate">
-                  <span className="text-xs font-medium text-foreground truncate">{user?.name || 'Demo Developer'}</span>
+                  <span className="text-xs font-medium text-foreground truncate">{user?.name || 'Developer'}</span>
                   <span className="text-[10px] text-muted-foreground truncate">{user?.targetRole || 'Developer'}</span>
                 </div>
               </div>

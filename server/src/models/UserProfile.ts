@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUserProfile extends Document {
+  clerkUserId: string;
   clerkId: string;
   email: string;
   name: string;
@@ -31,7 +32,8 @@ export interface IUserProfile extends Document {
 
 const UserProfileSchema: Schema = new Schema(
   {
-    clerkId: { type: String, required: true, unique: true, index: true },
+    clerkUserId: { type: String, required: true, unique: true, index: true },
+    clerkId: { type: String, index: true },
     email: { type: String, required: true },
     name: { type: String, required: true },
     avatarUrl: { type: String, default: '' },

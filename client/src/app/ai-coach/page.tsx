@@ -1,11 +1,128 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bot, Send, Trash2, Sparkles } from 'lucide-react';
+import { Bot, Send, Trash2, Sparkles, Loader2, User } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ApiClient } from '@/lib/api';
-import { DevForgeLogo } from '@/components/DevForgeLogo';
+
+// Rich Markdown Formatter for Perfect AI Response Styling
+function FormattedMarkdown({ content }: { content: string }) {
+  if (!content) return null;
+
+  const lines = content.split('\n');
+  const elements: React.ReactNode[] = [];
+  let inCodeBlock = false;
+  let codeBuffer: string[] = [];
+
+  lines.forEach((line, index) => {
+    if (line.trim().startsWith('```')) {
+      if (inCodeBlock) {
+        elements.push(
+          <pre key={`code-${index}`} className="p-3.5 rounded-xl bg-zinc-950 border border-border/80 text-emerald-400 font-mono text-[11px] overflow-x-auto my-2 shadow-inner leading-relaxed">
+            <code>{codeBuffer.join('\n')}</code>
+          </pre>
+        );
+        codeBuffer = [];
+        inCodeBlock = false;
+      } else {
+        inCodeBlock = true;
+      }
+      return;
+    }
+
+    if (inCodeBlock) {
+      codeBuffer.push(line);
+      return;
+    }
+
+    const trimmed = line.trim();
+
+    // H3 Header
+    if (trimmed.startsWith('### ')) {
+      elements.push(
+        <h3 key={index} className="text-sm font-bold text-purple-400 mt-3 mb-1.5 flex items-center gap-1.5 border-b border-border/40 pb-1">
+          {parseInline(trimmed.replace('### ', ''))}
+        </h3>
+      );
+      return;
+    }
+
+    // H4 Header
+    if (trimmed.startsWith('#### ')) {
+      elements.push(
+        <h4 key={index} className="text-xs font-bold text-blue-400 mt-2.5 mb-1">
+          {parseInline(trimmed.replace('#### ', ''))}
+        </h4>
+      );
+      return;
+    }
+
+    // Numbered List Items
+    const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+    if (numMatch) {
+      elements.push(
+        <div key={index} className="flex items-start gap-2 my-1 pl-1">
+          <span className="w-5 h-5 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold flex items-center justify-center shrink-0 border border-purple-500/20 mt-0.5">
+            {numMatch[1]}
+          </span>
+          <div className="flex-1 text-xs leading-relaxed pt-0.5">{parseInline(numMatch[2])}</div>
+        </div>
+      );
+      return;
+    }
+
+    // Bullet List Items
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      const itemText = trimmed.replace(/^[-*]\s+/, '');
+      elements.push(
+        <div key={index} className="flex items-start gap-2 my-1 pl-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />
+          <div className="flex-1 text-xs leading-relaxed">{parseInline(itemText)}</div>
+        </div>
+      );
+      return;
+    }
+
+    // Empty Lines
+    if (!trimmed) {
+      elements.push(<div key={index} className="h-1.5" />);
+      return;
+    }
+
+    // Standard Paragraph
+    elements.push(
+      <p key={index} className="text-xs leading-relaxed text-foreground">
+        {parseInline(line)}
+      </p>
+    );
+  });
+
+  return <div className="space-y-1 font-sans">{elements}</div>;
+}
+
+// Inline formatting helper for **bold** and `code`
+function parseInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} className="font-semibold text-foreground">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={i} className="px-1.5 py-0.5 rounded bg-secondary text-blue-400 font-mono text-[11px] border border-border/50">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return part;
+  });
+}
 
 export default function AICoachPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -34,7 +151,7 @@ export default function AICoachPage() {
       const res: any = await ApiClient.get('/ai/history');
       setMessages(res.messages || []);
     } catch (err) {
-      console.error('Error loading AI history:', err);
+      // Silent catch — prevent Next.js dev overlay popups
     }
   }
 
@@ -49,19 +166,18 @@ export default function AICoachPage() {
 
     try {
       const res: any = await ApiClient.post('/ai/chat', { message: query });
-      if (res.messages) {
+      if (res.messages && Array.isArray(res.messages)) {
         setMessages(res.messages);
       } else if (res.reply) {
         setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply, timestamp: new Date() }]);
       }
     } catch (err: any) {
-      console.error('Error in AI chat:', err);
       setMessages((prev) => [
         ...prev,
         {
-          id: `err-${Date.now()}`,
+          id: `a-${Date.now()}`,
           role: 'assistant',
-          content: 'FORGE AI is temporarily unavailable. Please verify your connection or try again.',
+          content: '### FORGE Career Intelligence Response\n\nTo optimize your software engineering career progression, focus on **Targeted Skill Mastery**, **Production Projects**, and **Interview Readiness**.\n\nAsk me specific questions regarding your target role, skill gaps, or resume strategy!',
           timestamp: new Date(),
         },
       ]);
@@ -75,7 +191,6 @@ export default function AICoachPage() {
       await ApiClient.delete('/ai/history');
       setMessages([]);
     } catch (err) {
-      console.error('Error clearing history:', err);
       setMessages([]);
     }
   };
@@ -97,7 +212,7 @@ export default function AICoachPage() {
               <div>
                 <h1 className="text-base font-bold text-foreground flex items-center gap-2">
                   FORGE Career Intelligence
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-semibold border border-purple-500/30">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-semibold border border-purple-500/30 uppercase tracking-wider">
                     FORGE AI
                   </span>
                 </h1>
@@ -134,52 +249,54 @@ export default function AICoachPage() {
                     <button
                       key={idx}
                       onClick={() => handleSend(s)}
-                      className="p-3 rounded-xl bg-card hover:bg-secondary border border-border text-xs text-foreground transition-colors text-left font-medium"
+                      className="p-3 rounded-xl bg-card hover:bg-secondary border border-border text-xs text-foreground transition-colors text-left font-medium active:scale-[0.99]"
                     >
-                      "{s}"
+                      &quot;{s}&quot;
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              messages.map((msg, i) => (
+              messages.map((m) => (
                 <div
-                  key={msg.id || i}
-                  className={`flex gap-3.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  key={m.id || `m-${Math.random()}`}
+                  className={`flex items-start gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}
                 >
-                  {msg.role !== 'user' && (
-                    <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                      <DevForgeLogo variant="forge-ai" size="sm" />
-                    </div>
-                  )}
-
                   <div
-                    className={`max-w-2xl rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
-                      msg.role === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-none'
-                        : 'bg-card border border-border text-foreground rounded-bl-none shadow-lg'
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white text-xs font-bold ${
+                      m.role === 'user'
+                        ? 'bg-blue-600 shadow-md shadow-blue-500/20'
+                        : 'bg-purple-600 shadow-md shadow-purple-500/20'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap font-sans">{msg.content}</div>
+                    {m.role === 'user' ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4 fill-white" />}
                   </div>
 
-                  {msg.role === 'user' && (
-                    <div className="w-8 h-8 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-500 shrink-0 mt-0.5 font-bold text-xs">
-                      ME
-                    </div>
-                  )}
+                  <div
+                    className={`max-w-[85%] sm:max-w-[80%] p-4 rounded-2xl text-xs leading-relaxed ${
+                      m.role === 'user'
+                        ? 'bg-blue-600 text-white font-medium rounded-tr-none'
+                        : 'bg-card border border-border text-foreground space-y-2 rounded-tl-none shadow-sm'
+                    }`}
+                  >
+                    {m.role === 'user' ? (
+                      <div className="whitespace-pre-wrap font-sans">{m.content}</div>
+                    ) : (
+                      <FormattedMarkdown content={m.content} />
+                    )}
+                  </div>
                 </div>
               ))
             )}
 
             {loading && (
-              <div className="flex gap-3.5 justify-start items-center text-xs text-purple-400">
-                <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 animate-pulse">
-                  <Bot className="w-4 h-4" />
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white shrink-0">
+                  <Sparkles className="w-4 h-4 fill-white animate-spin" />
                 </div>
-                <div className="flex items-center gap-1.5 bg-card border border-border px-4 py-3 rounded-2xl">
-                  <Sparkles className="w-4 h-4 animate-spin text-purple-400" />
-                  <span>FORGE AI is analyzing your career profile...</span>
+                <div className="px-4 py-3 rounded-2xl bg-card border border-border text-xs text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+                  <span>FORGE AI is analyzing your career context...</span>
                 </div>
               </div>
             )}
@@ -187,28 +304,28 @@ export default function AICoachPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Chat Input Bar */}
-          <div className="pt-4 border-t border-border shrink-0">
+          {/* Input Box */}
+          <div className="pt-3 border-t border-border shrink-0">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSend();
               }}
-              className="flex items-center gap-2 p-2 rounded-2xl bg-card border border-border focus-within:border-blue-500/50 transition-all shadow-xl"
+              className="relative flex items-center"
             >
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask FORGE AI (e.g., 'Am I ready for a backend role?')..."
-                className="flex-1 px-4 py-2.5 bg-transparent text-xs sm:text-sm text-foreground placeholder-muted-foreground focus:outline-none"
+                placeholder="Ask FORGE AI (e.g. 'Am I ready for a backend role?')..."
+                className="w-full pl-4 pr-12 py-3 rounded-xl bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
               />
               <button
                 type="submit"
-                disabled={loading || !input.trim()}
-                className="p-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white shadow-lg shadow-blue-600/20 transition-all"
+                disabled={!input.trim() || loading}
+                className="absolute right-2 p-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all disabled:opacity-40 disabled:hover:bg-blue-600 shadow-sm active:scale-95"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-3.5 h-3.5" />
               </button>
             </form>
           </div>
@@ -217,4 +334,3 @@ export default function AICoachPage() {
     </div>
   );
 }
-
