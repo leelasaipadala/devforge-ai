@@ -24,7 +24,8 @@ export class GeminiService {
       success: true,
       configured: this.isConfigured(),
       provider: 'FORGE AI',
-      model: config.geminiModel || 'gemini-2.5-flash',
+      status: this.isConfigured() ? 'ready' : 'unconfigured',
+      model: config.geminiModel || 'gemini-1.5-flash',
     };
   }
 
@@ -36,7 +37,7 @@ export class GeminiService {
   }
 
   /**
-   * Execute Google Gemini API with Exponential Backoff Retry for 429 Rate Limits
+   * Execute Google Gemini API with Timeout & Exponential Backoff Retry
    */
   public static async getModelResponse(prompt: string, systemInstruction?: string): Promise<string> {
     const apiKey = config.geminiApiKey;
@@ -44,7 +45,7 @@ export class GeminiService {
     if (!apiKey || apiKey.trim().length === 0) {
       const err: IGeminiError = {
         code: 'GEMINI_NOT_CONFIGURED',
-        message: 'FORGE AI is not configured yet. Add GEMINI_API_KEY to the server environment to enable AI.',
+        message: 'FORGE AI is not configured. Please configure GEMINI_API_KEY on the server.',
         status: 400,
       };
       throw err;
@@ -56,13 +57,13 @@ export class GeminiService {
     } catch (initErr: any) {
       const err: IGeminiError = {
         code: 'GEMINI_AUTH_FAILED',
-        message: 'FORGE AI configuration is invalid. Please check the server API key.',
+        message: 'FORGE AI authentication failed. Check the server Gemini configuration.',
         status: 401,
       };
       throw err;
     }
 
-    const primaryModel = config.geminiModel || 'gemini-2.5-flash';
+    const primaryModel = config.geminiModel || 'gemini-1.5-flash';
     const candidateModels = Array.from(new Set([primaryModel, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']));
 
     const maxRetries = 3;
@@ -76,23 +77,41 @@ export class GeminiService {
             systemInstruction,
           });
 
-          const result = await model.generateContent(prompt);
+          // Timeout Promise wrapper (15 seconds timeout)
+          const timeoutMs = 15000;
+          const generatePromise = model.generateContent(prompt);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => {
+              const timeoutErr: IGeminiError = {
+                code: 'GEMINI_TIMEOUT',
+                message: 'FORGE AI took too long to respond. Please try again.',
+                status: 408,
+              };
+              reject(timeoutErr);
+            }, timeoutMs)
+          );
+
+          const result: any = await Promise.race([generatePromise, timeoutPromise]);
           const response = await result.response;
           const text = response.text();
           if (text && text.trim().length > 0) return text;
         } catch (err: any) {
           lastError = err;
+          if (err?.code === 'GEMINI_TIMEOUT') throw err;
+
           const errStr = (err?.message || '').toLowerCase();
 
+          // 401 / Authentication
           if (errStr.includes('api_key_invalid') || errStr.includes('401') || errStr.includes('api key not valid') || errStr.includes('unauthorized')) {
             const authErr: IGeminiError = {
               code: 'GEMINI_AUTH_FAILED',
-              message: 'FORGE AI configuration is invalid. Please check the server API key.',
+              message: 'FORGE AI authentication failed. Check the server Gemini configuration.',
               status: 401,
             };
             throw authErr;
           }
 
+          // 403 / Permission
           if (errStr.includes('403') || errStr.includes('permission_denied')) {
             const permErr: IGeminiError = {
               code: 'GEMINI_PERMISSION_ERROR',
@@ -102,22 +121,24 @@ export class GeminiService {
             throw permErr;
           }
 
+          // 404 / Model Not Found
           if (errStr.includes('404') || errStr.includes('model not found')) {
             continue;
           }
 
+          // 429 / Rate limit / Quota Exceeded
           if (errStr.includes('429') || errStr.includes('resource_exhausted') || errStr.includes('quota') || errStr.includes('rate limit')) {
             if (attempt < maxRetries) {
               const backoffMs = attempt * 1000;
               if (process.env.NODE_ENV === 'development') {
-                console.warn(`[FORGE AI] Rate limited (429). Retrying attempt ${attempt + 1}/${maxRetries} after ${backoffMs}ms...`);
+                console.warn(`[FORGE AI] 429 Quota Exceeded. Attempt ${attempt}/${maxRetries}. Retrying in ${backoffMs}ms...`);
               }
               await this.sleep(backoffMs);
               break;
             } else {
               const rateErr: IGeminiError = {
                 code: 'AI_RATE_LIMITED',
-                message: 'FORGE AI is temporarily rate-limited. Please try again shortly.',
+                message: 'FORGE AI has reached its Gemini API quota. Please try again later.',
                 status: 429,
               };
               throw rateErr;
@@ -128,26 +149,27 @@ export class GeminiService {
     }
 
     const finalErrStr = (lastError?.message || '').toLowerCase();
-    if (finalErrStr.includes('500') || finalErrStr.includes('internal error')) {
+    if (finalErrStr.includes('429') || finalErrStr.includes('quota')) {
+      const rateErr: IGeminiError = {
+        code: 'AI_RATE_LIMITED',
+        message: 'FORGE AI has reached its Gemini API quota. Please try again later.',
+        status: 429,
+      };
+      throw rateErr;
+    }
+
+    if (finalErrStr.includes('500') || finalErrStr.includes('502') || finalErrStr.includes('503') || finalErrStr.includes('overloaded')) {
       const servErr: IGeminiError = {
         code: 'GEMINI_SERVER_ERROR',
-        message: 'FORGE AI encountered a temporary server error. Please try again.',
-        status: 500,
-      };
-      throw servErr;
-    }
-    if (finalErrStr.includes('503') || finalErrStr.includes('overloaded') || finalErrStr.includes('unavailable')) {
-      const unavailErr: IGeminiError = {
-        code: 'GEMINI_UNAVAILABLE',
-        message: 'FORGE AI is temporarily unavailable. Please retry.',
+        message: 'FORGE AI is temporarily unavailable. Please try again.',
         status: 503,
       };
-      throw unavailErr;
+      throw servErr;
     }
 
     const genErr: IGeminiError = {
       code: 'GEMINI_ERROR',
-      message: lastError?.message || 'FORGE AI returned an invalid response. Please retry.',
+      message: lastError?.message || 'FORGE AI is temporarily unavailable. Please try again.',
       status: 500,
     };
     throw genErr;
