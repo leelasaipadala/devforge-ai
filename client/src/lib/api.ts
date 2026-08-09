@@ -1,4 +1,13 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000/api';
+const getApiBaseUrl = (): string => {
+  let envUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000/api').trim();
+  envUrl = envUrl.replace(/\/+$/, '');
+  if (!envUrl.endsWith('/api')) {
+    envUrl = `${envUrl}/api`;
+  }
+  return envUrl;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export class ApiClient {
   private static getHeaders(customHeaders?: Record<string, string>): HeadersInit {
