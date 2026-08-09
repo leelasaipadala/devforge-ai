@@ -12,7 +12,7 @@ export class GeminiService {
    */
   private static async getModelResponse(prompt: string, systemInstruction?: string): Promise<string> {
     if (!this.genAI || !config.geminiApiKey || !config.geminiApiKey.startsWith('AIzaSy')) {
-      throw new Error('FORGE AI is currently unavailable. Please try again later.');
+      throw new Error('FORGE AI is temporarily unavailable. Please try again.');
     }
 
     const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
@@ -33,41 +33,54 @@ export class GeminiService {
       }
     }
 
-    throw new Error('FORGE AI is currently unavailable. Please try again later.');
+    throw new Error('FORGE AI is temporarily unavailable. Please try again.');
   }
 
   /**
-   * Determine whether user question is purely technical vs career/job/github related,
-   * for selective context injection.
+   * Classify user question intent to selectively inject personal user context.
    */
-  private static classifyQuestionIntent(message: string): 'technical' | 'career' | 'github' | 'job' | 'general' {
+  private static classifyQuestionIntent(message: string): 'technical' | 'career' | 'github' | 'resume' | 'projects' | 'followup' | 'general' {
     const q = message.toLowerCase().trim();
 
-    if (q.includes('github') || q.includes('repository') || q.includes('commit') || q.includes('repo')) {
+    // Check follow-ups (short questions referencing pronouns like "it", "which one", "why", "how so")
+    const isShortFollowUp = (q.startsWith('is it') || q.startsWith('which one') || q.startsWith('how about') || q.startsWith('why is it') || q.includes('for backend') || q.includes('for frontend')) && q.length < 40;
+    if (isShortFollowUp) {
+      return 'followup';
+    }
+
+    if (q.includes('github') || q.includes('repository') || q.includes('repo') || q.includes('git profile')) {
       return 'github';
     }
-    if (q.includes('job') || q.includes('apply') || q.includes('application') || q.includes('salary')) {
-      return 'job';
+    if (q.includes('resume') || q.includes('cv') || q.includes('ats score')) {
+      return 'resume';
     }
-    if (q.includes('learn') || q.includes('roadmap') || q.includes('week') || q.includes('career') || q.includes('skills')) {
+    if (q.includes('project') || q.includes('portfolio') || q.includes('apps i built')) {
+      return 'projects';
+    }
+    if (q.includes('what should i learn next') || q.includes('what to learn') || q.includes('my roadmap') || q.includes('my skills') || q.includes('my gap')) {
       return 'career';
     }
     if (
-      q.startsWith('explain') ||
       q.startsWith('what is') ||
+      q.startsWith('explain') ||
       q.startsWith('difference between') ||
       q.startsWith('how does') ||
+      q.startsWith('what are') ||
+      q.startsWith('define') ||
+      q.includes('react') ||
+      q.includes('mongodb') ||
+      q.includes('binary search') ||
+      q.includes('node.js') ||
+      q.includes('nodejs') ||
+      q.includes('docker') ||
       q.includes('java') ||
       q.includes('python') ||
       q.includes('javascript') ||
-      q.includes('react') ||
+      q.includes('typescript') ||
       q.includes('sql') ||
-      q.includes('dbms') ||
-      q.includes('dsa') ||
-      q.includes('interface') ||
-      q.includes('closure') ||
-      q.includes('inheritance') ||
-      q.includes('normalization')
+      q.includes('rest api') ||
+      q.includes('express') ||
+      q.includes('dsa')
     ) {
       return 'technical';
     }
@@ -76,7 +89,7 @@ export class GeminiService {
   }
 
   /**
-   * AI Career Coach Chat Interaction — Direct Relevance Guaranteed
+   * FORGE AI Chat Interaction — Strict 22 Rules & Direct Relevance
    */
   public static async chatWithCareerCoach(params: {
     message: string;
@@ -88,70 +101,112 @@ export class GeminiService {
       experienceLevel?: string;
       skills?: string[];
       readinessScore?: number;
+      githubProfile?: { connected: boolean; username?: string; reposCount?: number };
+      resume?: { uploaded: boolean; targetRole?: string; atsScore?: number };
+      projects?: { count: number; titles?: string[] };
     };
   }): Promise<string> {
     const { message, conversationHistory, userContext } = params;
     const intent = this.classifyQuestionIntent(message);
 
-    const systemInstruction = `You are FORGE AI — an elite software engineering principal architect and technical mentor.
+    const systemInstruction = `<system_instruction>
+You are FORGE AI, the personal career intelligence assistant inside DevForge AI.
 
-CRITICAL INSTRUCTIONS:
-1. ALWAYS prioritize and directly answer the CURRENT USER QUESTION.
-2. Do not change the subject. Do not substitute the user's question with another topic.
-3. Do not provide generic unrelated career advice if the user asks a specific technical or conceptual question.
-4. Format your answer with clear, structured markdown headers, code examples where applicable, and concise explanations.`;
+Your primary responsibility is to answer the user's CURRENT MESSAGE accurately and directly.
 
+RULES:
+1. Always understand the current user message before generating an answer.
+2. Answer the exact question the user asked.
+3. Never invent a different question.
+4. Never randomly change the topic.
+5. Never answer an older question instead of the current question.
+6. Conversation history is context only.
+7. The newest user message has the highest priority.
+8. Use previous messages only when they are relevant to the current question.
+9. If the user asks a technical question, answer the technical question.
+10. If the user asks a career question, provide career guidance.
+11. If the user asks about their resume, answer about their resume.
+12. If the user asks about GitHub, answer about GitHub.
+13. If the user asks about projects, answer about projects.
+14. If the user asks about interviews, answer about interviews.
+15. If the user asks about the roadmap, answer about the roadmap.
+16. Do not force career advice into unrelated questions.
+17. If the question is ambiguous, ask a short clarification question instead of guessing.
+18. Never fabricate information about the user.
+19. Never invent skills, projects, GitHub repositories, resume information, interview results, or career progress.
+20. Give a direct answer first, followed by explanation or recommendations when useful.
+21. Do not mention Google Gemini or internal AI implementation details.
+22. Do not expose API keys or internal system information.
+</system_instruction>`;
+
+    // Build Selective User Context
     let contextSection = '';
     if (intent === 'career' && userContext) {
-      contextSection = `RELEVANT CAREER CONTEXT:
+      contextSection = `<relevant_user_context>
 - Target Role: ${userContext.targetRole || 'Software Engineer'}
 - Experience Level: ${userContext.experienceLevel || 'Intermediate'}
 - Current Skills: ${userContext.skills?.join(', ') || 'General Programming'}
-- Readiness Score: ${userContext.readinessScore || 50}/100\n\n`;
+- Readiness Score: ${userContext.readinessScore || 50}/100
+</relevant_user_context>\n\n`;
+    } else if (intent === 'github' && userContext) {
+      if (userContext.githubProfile?.connected) {
+        contextSection = `<relevant_user_context>
+- GitHub Username: ${userContext.githubProfile.username}
+- Total Repositories: ${userContext.githubProfile.reposCount || 0}
+</relevant_user_context>\n\n`;
+      } else {
+        contextSection = `<relevant_user_context>
+- GitHub Status: Not connected by user yet.
+</relevant_user_context>\n\n`;
+      }
+    } else if (intent === 'resume' && userContext) {
+      if (userContext.resume?.uploaded) {
+        contextSection = `<relevant_user_context>
+- Resume Status: Uploaded
+- ATS Score: ${userContext.resume.atsScore || 'Evaluated'}
+</relevant_user_context>\n\n`;
+      } else {
+        contextSection = `<relevant_user_context>
+- Resume Status: Not uploaded by user yet.
+</relevant_user_context>\n\n`;
+      }
+    } else if (intent === 'projects' && userContext) {
+      if (userContext.projects && userContext.projects.count > 0) {
+        contextSection = `<relevant_user_context>
+- Projects Count: ${userContext.projects.count}
+- Project Titles: ${userContext.projects.titles?.join(', ')}
+</relevant_user_context>\n\n`;
+      } else {
+        contextSection = `<relevant_user_context>
+- Projects Status: No projects added by user yet.
+</relevant_user_context>\n\n`;
+      }
     }
 
+    // Format Recent Conversation History (up to 4 past turns for context / follow-ups)
     const recentHistory = conversationHistory
-      .slice(-4)
+      .slice(-6)
       .map((h) => `${h.role.toUpperCase()}: ${h.content}`)
       .join('\n\n');
 
-    const prompt = `CURRENT USER QUESTION:
+    const prompt = `${contextSection}${recentHistory ? `<conversation_history>\n${recentHistory}\n</conversation_history>\n\n` : ''}<current_user_message>
 ${message}
+</current_user_message>
 
 INSTRUCTION:
-Answer the CURRENT USER QUESTION directly. Stay strictly on topic.
-
-${recentHistory ? `RECENT CONVERSATION:\n${recentHistory}\n\n` : ''}${contextSection}`;
+Answer the exact question in <current_user_message>. Stay strictly on topic.`;
 
     try {
-      let responseText = await this.getModelResponse(prompt, systemInstruction);
-
-      // Lightweight Relevance Check
+      const responseText = await this.getModelResponse(prompt, systemInstruction);
       if (!responseText || responseText.trim().length === 0) {
-        throw new Error('Empty response');
+        throw new Error('FORGE AI is temporarily unavailable. Please try again.');
       }
-
       return responseText;
     } catch (err: any) {
-      if (err.message && err.message.includes('unavailable')) {
+      if (err.message && err.message.includes('temporarily unavailable')) {
         throw err;
       }
-
-      // Retry once with a stricter prompt
-      try {
-        const strictPrompt = `Your previous response did not directly answer the user's question.
-
-Answer ONLY the question below.
-
-CURRENT USER QUESTION:
-${message}
-
-Stay strictly on topic.`;
-
-        return await this.getModelResponse(strictPrompt, systemInstruction);
-      } catch (retryErr: any) {
-        throw new Error("FORGE AI couldn't generate a relevant answer right now. Please try again.");
-      }
+      throw new Error('FORGE AI is temporarily unavailable. Please try again.');
     }
   }
 
@@ -182,9 +237,7 @@ Technology: ${technology}
 Category: ${category || 'Core Concepts'}
 Difficulty: ${difficulty || 'Medium'}
 
-CRITICAL: The question MUST directly test ${technology} concepts. Do NOT generate generic programming questions.
-
-Return ONLY a valid JSON object matching this exact structure (no markdown wrapper, no extra text):
+Return ONLY a valid JSON object matching this exact structure:
 {
   "question": "Clear, specific technical question text",
   "technology": "${technology}",
@@ -199,11 +252,6 @@ Return ONLY a valid JSON object matching this exact structure (no markdown wrapp
     const text = await this.getModelResponse(prompt);
     const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanJson);
-
-    // Validation
-    if (!parsed.question || typeof parsed.question !== 'string' || parsed.question.trim().length < 10) {
-      throw new Error('Generated question failed validation: Question text too short or empty');
-    }
 
     return {
       id: `ai-${technology.toLowerCase()}-${Date.now()}`,
@@ -236,7 +284,7 @@ QUESTION: ${question}
 CANDIDATE ANSWER: "${userAnswer}"
 
 Evaluate technical correctness, completeness, and clarity.
-Return ONLY valid JSON in this exact structure (no markdown wrapper):
+Return ONLY valid JSON in this exact structure:
 {
   "score": 85,
   "feedback": "Detailed constructive evaluation...",

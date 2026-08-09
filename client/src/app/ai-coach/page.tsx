@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bot, Send, Trash2, Sparkles, Loader2, User } from 'lucide-react';
+import { Bot, Send, Trash2, Sparkles, Loader2, User, Plus, RefreshCw, Copy, Check } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ApiClient } from '@/lib/api';
@@ -129,13 +129,18 @@ export default function AICoachPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [lastUserPrompt, setLastUserPrompt] = useState<string>('');
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const suggestions = [
-    'What should I learn this week?',
-    'Explain Java inheritance.',
-    'What is a closure in JavaScript?',
-    'How can I improve my GitHub?',
+    'What is React?',
+    'What is MongoDB?',
+    'Explain binary search.',
+    'What is Node.js?',
   ];
 
   useEffect(() => {
@@ -161,13 +166,25 @@ export default function AICoachPage() {
     const query = (textToSend || input).trim();
     if (!query || loading) return;
 
+    // Clear input state immediately
     setInput('');
+    setLastUserPrompt(query);
+
+    // Create & append local user message
     const tempUserMsg = { id: `u-${Date.now()}`, role: 'user', content: query, timestamp: new Date() };
     setMessages((prev) => [...prev, tempUserMsg]);
     setLoading(true);
 
     try {
-      const res: any = await ApiClient.post('/ai/chat', { message: query });
+      const res: any = await ApiClient.post('/ai/chat', {
+        message: query,
+        conversationId,
+      });
+
+      if (res && res.conversationId) {
+        setConversationId(res.conversationId);
+      }
+
       if (res && res.messages && Array.isArray(res.messages)) {
         setMessages(res.messages);
       } else if (res && res.reply) {
@@ -178,19 +195,21 @@ export default function AICoachPage() {
           {
             id: `a-${Date.now()}`,
             role: 'assistant',
-            content: 'FORGE AI is currently unavailable. Please try again later.',
+            content: 'FORGE AI is temporarily unavailable. Please try again.',
+            isError: true,
             timestamp: new Date(),
           },
         ]);
       }
     } catch (err: any) {
-      const errMsg = err?.message || 'FORGE AI is currently unavailable. Please try again later.';
+      const errMsg = 'FORGE AI is temporarily unavailable. Please try again.';
       setMessages((prev) => [
         ...prev,
         {
           id: `a-${Date.now()}`,
           role: 'assistant',
           content: errMsg,
+          isError: true,
           timestamp: new Date(),
         },
       ]);
@@ -199,12 +218,33 @@ export default function AICoachPage() {
     }
   };
 
+  const handleNewChat = () => {
+    setMessages([]);
+    setConversationId(null);
+    setInput('');
+  };
+
   const handleClearHistory = async () => {
     try {
       await ApiClient.delete('/ai/history');
       setMessages([]);
+      setConversationId(null);
     } catch (err) {
       setMessages([]);
+      setConversationId(null);
+    }
+  };
+
+  const handleCopy = (text: string, idx: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
@@ -216,7 +256,7 @@ export default function AICoachPage() {
         <Header onMobileMenuClick={() => setMobileOpen(true)} />
 
         <div className="flex-1 flex flex-col justify-between max-w-5xl mx-auto w-full p-4 sm:p-6 overflow-hidden">
-          {/* Top Bar */}
+          {/* Top Header Bar */}
           <div className="flex items-center justify-between pb-4 border-b border-border shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
@@ -229,17 +269,28 @@ export default function AICoachPage() {
                     FORGE AI
                   </span>
                 </h1>
-                <p className="text-[11px] text-muted-foreground">Context-aware software career, skill gap, and interview strategy advisor.</p>
+                <p className="text-[11px] text-muted-foreground">Context-aware software career, skill gap, and technical strategy advisor.</p>
               </div>
             </div>
 
-            <button
-              onClick={handleClearHistory}
-              className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-secondary transition-colors border border-border"
-              title="Clear Conversation"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleNewChat}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm"
+                title="Start New Conversation"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>New Chat</span>
+              </button>
+
+              <button
+                onClick={handleClearHistory}
+                className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-secondary transition-colors border border-border"
+                title="Clear Conversation History"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Messages Scroll Area */}
@@ -252,7 +303,7 @@ export default function AICoachPage() {
                 <div>
                   <h2 className="text-xl font-bold text-foreground mb-2">How can FORGE AI help today?</h2>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Ask career readiness questions, request project ideas, get interview guidance, or review your resume ATS strategy.
+                    Ask technical questions, career readiness guidance, code explanations, or system architecture trade-offs.
                   </p>
                 </div>
 
@@ -270,9 +321,9 @@ export default function AICoachPage() {
                 </div>
               </div>
             ) : (
-              messages.map((m) => (
+              messages.map((m, idx) => (
                 <div
-                  key={m.id || `m-${Math.random()}`}
+                  key={m.id || `m-${idx}`}
                   className={`flex items-start gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}
                 >
                   <div
@@ -286,7 +337,7 @@ export default function AICoachPage() {
                   </div>
 
                   <div
-                    className={`max-w-[85%] sm:max-w-[80%] p-4 rounded-2xl text-xs leading-relaxed ${
+                    className={`max-w-[85%] sm:max-w-[80%] p-4 rounded-2xl text-xs leading-relaxed relative group ${
                       m.role === 'user'
                         ? 'bg-blue-600 text-white font-medium rounded-tr-none'
                         : 'bg-card border border-border text-foreground space-y-2 rounded-tl-none shadow-sm'
@@ -295,7 +346,45 @@ export default function AICoachPage() {
                     {m.role === 'user' ? (
                       <div className="whitespace-pre-wrap font-sans">{m.content}</div>
                     ) : (
-                      <FormattedMarkdown content={m.content} />
+                      <>
+                        <FormattedMarkdown content={m.content} />
+
+                        {/* Error Retry Button */}
+                        {m.isError && (
+                          <div className="pt-2">
+                            <button
+                              onClick={() => handleSend(lastUserPrompt)}
+                              className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs border border-red-500/30 flex items-center gap-1.5 transition-colors"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              Retry
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Actions Toolbar on Assistant Message */}
+                        {!m.isError && (
+                          <div className="flex items-center gap-2 pt-2 border-t border-border/40 text-[11px] text-muted-foreground opacity-90 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleCopy(m.content, idx)}
+                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                              title="Copy response"
+                            >
+                              {copiedIdx === idx ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                              <span>{copiedIdx === idx ? 'Copied' : 'Copy'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleSend(lastUserPrompt)}
+                              className="flex items-center gap-1 hover:text-foreground transition-colors ml-2"
+                              title="Regenerate response"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              <span>Regenerate</span>
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -309,7 +398,7 @@ export default function AICoachPage() {
                 </div>
                 <div className="px-4 py-3 rounded-2xl bg-card border border-border text-xs text-muted-foreground flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
-                  <span>FORGE AI is analyzing your current question...</span>
+                  <span>FORGE AI is analyzing your question...</span>
                 </div>
               </div>
             )}
@@ -317,7 +406,7 @@ export default function AICoachPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Box */}
+          {/* Input Area */}
           <div className="pt-3 border-t border-border shrink-0">
             <form
               onSubmit={(e) => {
@@ -326,17 +415,19 @@ export default function AICoachPage() {
               }}
               className="relative flex items-center"
             >
-              <input
-                type="text"
+              <textarea
+                ref={textareaRef}
+                rows={1}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask FORGE AI (e.g. 'Explain Java inheritance' or 'What is a closure in JS?')..."
-                className="w-full pl-4 pr-12 py-3 rounded-xl bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
+                onKeyDown={handleKeyDown}
+                placeholder="Ask FORGE AI (e.g. 'What is React?' or 'Explain binary search')..."
+                className="w-full pl-4 pr-12 py-3 rounded-xl bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 transition-colors shadow-inner resize-none min-h-[44px] max-h-32"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || loading}
-                className="absolute right-2 p-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all disabled:opacity-40 disabled:hover:bg-blue-600 shadow-sm active:scale-95"
+                className="absolute right-2.5 p-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all disabled:opacity-40 disabled:hover:bg-blue-600 shadow-sm active:scale-95"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>
