@@ -138,10 +138,10 @@ export default function AICoachPage() {
 
   const suggestions = [
     'What should I learn this week?',
-    'Analyze my current skill gaps.',
-    'How can I improve my GitHub profile?',
-    'Review my project portfolio.',
-    'How should I prepare for technical interviews?',
+    'Review my current skill gaps.',
+    'How can I improve my resume?',
+    'Which project should I build next?',
+    'How should I prepare for my next interview?',
     'Help me improve my career roadmap.',
   ];
 
@@ -169,21 +169,27 @@ export default function AICoachPage() {
     const msg = err?.message || err?.response?.data?.message || '';
 
     if (code === 'GEMINI_NOT_CONFIGURED' || msg.includes('not configured')) {
-      return 'FORGE AI is not configured yet. Please configure the Gemini API key.';
+      return 'FORGE AI is not configured yet. Add GEMINI_API_KEY to the server environment to enable AI.';
     }
-    if (code === 'GEMINI_AUTH_FAILED' || msg.includes('authentication failed')) {
-      return 'FORGE AI authentication failed. Please check the Gemini API configuration.';
+    if (code === 'GEMINI_AUTH_FAILED' || msg.includes('authentication') || msg.includes('invalid')) {
+      return 'FORGE AI configuration is invalid. Please check the server API key.';
     }
-    if (code === 'GEMINI_RATE_LIMIT' || msg.includes('rate-limited')) {
+    if (code === 'GEMINI_PERMISSION_ERROR' || msg.includes('permission')) {
+      return 'FORGE AI does not have permission to use the configured model.';
+    }
+    if (code === 'GEMINI_MODEL_NOT_FOUND' || msg.includes('model is unavailable')) {
+      return 'The configured FORGE AI model is unavailable. Check GEMINI_MODEL.';
+    }
+    if (code === 'AI_RATE_LIMITED' || msg.includes('rate-limited')) {
       return 'FORGE AI is temporarily rate-limited. Please try again shortly.';
     }
-    if (code === 'GEMINI_SERVICE_ERROR' || msg.includes('service error')) {
-      return 'FORGE AI backend is unavailable. Please check that the server is running.';
+    if (code === 'GEMINI_SERVER_ERROR' || msg.includes('server error')) {
+      return 'FORGE AI encountered a temporary server error. Please try again.';
     }
-    if (code === 'UNAUTHORIZED' || msg.includes('session has expired')) {
-      return 'Your session has expired. Please sign in again.';
+    if (code === 'GEMINI_UNAVAILABLE' || msg.includes('unavailable')) {
+      return 'FORGE AI is temporarily unavailable. Please retry.';
     }
-    return 'FORGE AI could not complete this request. Please try again.';
+    return "FORGE AI couldn't complete that request. Please try again.";
   };
 
   const handleSend = async (textToSend?: string) => {
@@ -289,12 +295,12 @@ export default function AICoachPage() {
               </div>
               <div>
                 <h1 className="text-base font-bold text-foreground flex items-center gap-2">
-                  FORGE Career Intelligence
+                  FORGE AI
                   <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-semibold border border-purple-500/30 uppercase tracking-wider">
-                    FORGE AI
+                    PRO
                   </span>
                 </h1>
-                <p className="text-[11px] text-muted-foreground">Context-aware software career, skill gap, and technical strategy advisor.</p>
+                <p className="text-[11px] text-muted-foreground">Your Personal Career Intelligence Engine</p>
               </div>
             </div>
 
@@ -321,12 +327,12 @@ export default function AICoachPage() {
           {/* Messages Scroll Area */}
           <div className="flex-1 overflow-y-auto py-6 space-y-6 pr-2">
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-xl mx-auto py-10">
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-xl mx-auto py-8">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-purple-500/20">
                   <Sparkles className="w-8 h-8 fill-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-foreground mb-2">How can FORGE AI help today?</h2>
+                  <h2 className="text-xl font-bold text-foreground mb-1.5">How can FORGE AI help today?</h2>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Ask technical questions, career readiness guidance, code explanations, or system architecture trade-offs.
                   </p>

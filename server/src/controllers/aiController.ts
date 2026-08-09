@@ -1,27 +1,23 @@
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import { AIConversation } from '../models/AIConversation.js';
-import { UserProfile } from '../models/UserProfile.js';
-import { Skill } from '../models/Skill.js';
-import { Project } from '../models/Project.js';
+import { AiContextService } from '../services/aiContextService.js';
+import { AiPromptService } from '../services/aiPromptService.js';
 import { GeminiService } from '../services/geminiService.js';
+import { AiResponseService } from '../services/aiResponseService.js';
 import { isMongoConnected } from '../config/db.js';
 
 const memoryChats = new Map<string, any[]>();
 
 /**
- * Public AI Health Check Endpoint (GET /api/ai/health)
+ * AI Status & Health Endpoint (GET /api/ai/status & GET /api/ai/health)
  */
-export const getAiHealth = async (_req: Request, res: Response): Promise<void> => {
-  const isConfigured = GeminiService.isConfigured();
-  res.json({
-    success: true,
-    configured: isConfigured,
-    provider: 'FORGE AI',
-  });
+export const getAiStatus = async (_req: Request, res: Response): Promise<void> => {
+  res.json(GeminiService.getStatus());
 };
 
 export const chatWithCoach = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const startTime = Date.now();
   try {
     const userId = req.userId!;
     const { message, conversationId } = req.body;
@@ -36,49 +32,15 @@ export const chatWithCoach = async (req: AuthenticatedRequest, res: Response): P
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[FORGE AI] Current user message:', message.slice(0, 80));
-      console.log('[FORGE AI] Conversation ID:', conversationId || 'new');
+      console.log(`[FORGE AI] Request started | User: ${userId} | Message: "${message.slice(0, 60)}..."`);
     }
 
-    // Load user context selectively
-    let userContext: any = {
-      name: req.userName || 'Developer',
-      targetRole: 'Full Stack Developer',
-      careerGoal: 'Land a Software Engineer Position',
-      experienceLevel: 'Intermediate',
-      skills: ['JavaScript', 'React', 'Node.js'],
-      readinessScore: 50,
-      githubProfile: { connected: false },
-      resume: { uploaded: false },
-      projects: { count: 0, titles: [] },
-    };
+    // 1. Retrieve scoped real user context from MongoDB via AiContextService
+    const userContext = await AiContextService.getUserContext(userId, req.userName);
 
+    // 2. Query recent conversation history
     let history: { role: string; content: string }[] = [];
-
     if (isMongoConnected) {
-      const profile = await UserProfile.findOne({ $or: [{ clerkUserId: userId }, { clerkId: userId }] });
-      if (profile) {
-        userContext.name = profile.name || userContext.name;
-        userContext.targetRole = profile.targetRole || userContext.targetRole;
-        userContext.careerGoal = profile.careerGoal || userContext.careerGoal;
-        userContext.experienceLevel = profile.experienceLevel || userContext.experienceLevel;
-        userContext.readinessScore = profile.readinessScore || 50;
-        if (profile.githubUsername) {
-          userContext.githubProfile = { connected: true, username: profile.githubUsername };
-        }
-      }
-
-      const userSkills = await Skill.find({ userId });
-      if (userSkills.length > 0) {
-        userContext.skills = userSkills.map((s) => s.name);
-      }
-
-      const userProjects = await Project.find({ userId });
-      if (userProjects.length > 0) {
-        userContext.projects = { count: userProjects.length, titles: userProjects.map((p) => p.title) };
-      }
-
-      // Query conversation history
       let conversation: any = null;
       if (conversationId) {
         conversation = await AIConversation.findOne({ _id: conversationId, userId });
@@ -86,7 +48,7 @@ export const chatWithCoach = async (req: AuthenticatedRequest, res: Response): P
         conversation = await AIConversation.findOne({ userId }).sort({ updatedAt: -1 });
       }
 
-      if (conversation) {
+      if (conversation && Array.isArray(conversation.messages)) {
         history = conversation.messages.map((m: any) => ({ role: m.role, content: m.content }));
       }
     } else {
@@ -94,17 +56,25 @@ export const chatWithCoach = async (req: AuthenticatedRequest, res: Response): P
       history = chat.map((m: any) => ({ role: m.role, content: m.content }));
     }
 
-    // Call FORGE AI Gemini Service
-    const aiResponseText = await GeminiService.chatWithCareerCoach({
+    // 3. Assemble structured prompt via AiPromptService
+    const { prompt, systemInstruction } = AiPromptService.buildFullPrompt({
       message: message.trim(),
       conversationHistory: history,
       userContext,
     });
 
+    // 4. Execute Gemini SDK call via GeminiService
+    const rawAiText = await GeminiService.getModelResponse(prompt, systemInstruction);
+
+    // 5. Validate & sanitize output via AiResponseService
+    const aiResponseText = AiResponseService.validateAndSanitize(rawAiText);
+
+    const duration = Date.now() - startTime;
     if (process.env.NODE_ENV === 'development') {
-      console.log('[FORGE AI] Response generated successfully');
+      console.log(`[FORGE AI] Request succeeded | Duration: ${duration}ms`);
     }
 
+    // 6. Persist conversation
     const userMsg = { id: `msg-${Date.now()}-1`, role: 'user' as const, content: message.trim(), timestamp: new Date() };
     const assistantMsg = { id: `msg-${Date.now()}-2`, role: 'assistant' as const, content: aiResponseText, timestamp: new Date() };
 
@@ -139,12 +109,13 @@ export const chatWithCoach = async (req: AuthenticatedRequest, res: Response): P
       messages: activeConversation.messages,
     });
   } catch (error: any) {
+    const duration = Date.now() - startTime;
     const code = error?.code || 'GEMINI_ERROR';
     const status = error?.status || 500;
     const message = error?.message || 'FORGE AI could not complete this request. Please try again.';
 
     if (process.env.NODE_ENV === 'development') {
-      console.error('[FORGE AI ERROR]', { code, status, message });
+      console.error(`[FORGE AI ERROR] ${code} (HTTP ${status}) after ${duration}ms | Message: ${message}`);
     }
 
     res.status(status).json({

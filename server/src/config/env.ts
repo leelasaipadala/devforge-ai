@@ -12,6 +12,7 @@ export const config = {
   clerkSecretKey: process.env.CLERK_SECRET_KEY || '',
   clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || '',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
   githubToken: process.env.GITHUB_TOKEN || '',
   githubClientId: process.env.GITHUB_CLIENT_ID || '',
   githubClientSecret: process.env.GITHUB_CLIENT_SECRET || '',

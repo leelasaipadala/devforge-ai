@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/authMiddleware.js';
-import { chatWithCoach, getConversationHistory, clearConversation, getAiHealth } from '../controllers/aiController.js';
+import { chatWithCoach, getConversationHistory, clearConversation, getAiStatus } from '../controllers/aiController.js';
 
 const router = Router();
 
-// Health check endpoint (Public)
-router.get('/health', getAiHealth);
+// Public Status & Health Check Endpoints
+router.get('/status', getAiStatus);
+router.get('/health', getAiStatus);
 
-// Authenticated routes
+// Authenticated Routes
 router.use(requireAuth);
 router.post('/chat', chatWithCoach);
 router.get('/history', getConversationHistory);
