@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 import { AIConversation } from '../models/AIConversation.js';
 import { UserProfile } from '../models/UserProfile.js';
@@ -9,18 +9,36 @@ import { isMongoConnected } from '../config/db.js';
 
 const memoryChats = new Map<string, any[]>();
 
+/**
+ * Public AI Health Check Endpoint (GET /api/ai/health)
+ */
+export const getAiHealth = async (_req: Request, res: Response): Promise<void> => {
+  const isConfigured = GeminiService.isConfigured();
+  res.json({
+    success: true,
+    configured: isConfigured,
+    provider: 'FORGE AI',
+  });
+};
+
 export const chatWithCoach = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.userId!;
     const { message, conversationId } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      res.status(400).json({ success: false, message: 'Message content is required' });
+      res.status(400).json({
+        success: false,
+        code: 'INVALID_REQUEST',
+        message: 'Message content is required',
+      });
       return;
     }
 
-    console.log('[FORGE AI] Current user message:', message);
-    console.log('[FORGE AI] Conversation ID:', conversationId || 'new');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[FORGE AI] Current user message:', message.slice(0, 80));
+      console.log('[FORGE AI] Conversation ID:', conversationId || 'new');
+    }
 
     // Load user context selectively
     let userContext: any = {
@@ -83,7 +101,9 @@ export const chatWithCoach = async (req: AuthenticatedRequest, res: Response): P
       userContext,
     });
 
-    console.log('[FORGE AI] Response generated successfully');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[FORGE AI] Response generated successfully');
+    }
 
     const userMsg = { id: `msg-${Date.now()}-1`, role: 'user' as const, content: message.trim(), timestamp: new Date() };
     const assistantMsg = { id: `msg-${Date.now()}-2`, role: 'assistant' as const, content: aiResponseText, timestamp: new Date() };
@@ -119,12 +139,19 @@ export const chatWithCoach = async (req: AuthenticatedRequest, res: Response): P
       messages: activeConversation.messages,
     });
   } catch (error: any) {
-    console.error('[FORGE AI Error]:', error?.message || error);
-    const errMsg = error?.message && error.message.includes('temporarily unavailable')
-      ? 'FORGE AI is temporarily unavailable. Please try again.'
-      : error?.message || 'FORGE AI is temporarily unavailable. Please try again.';
+    const code = error?.code || 'GEMINI_ERROR';
+    const status = error?.status || 500;
+    const message = error?.message || 'FORGE AI could not complete this request. Please try again.';
 
-    res.status(500).json({ success: false, message: errMsg });
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[FORGE AI ERROR]', { code, status, message });
+    }
+
+    res.status(status).json({
+      success: false,
+      code,
+      message,
+    });
   }
 };
 

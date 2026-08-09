@@ -1,25 +1,55 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config/env.js';
 
+export interface IGeminiError {
+  code: string;
+  message: string;
+  status?: number;
+}
+
 export class GeminiService {
-  private static genAI = config.geminiApiKey && config.geminiApiKey.startsWith('AIzaSy')
-    ? new GoogleGenerativeAI(config.geminiApiKey)
-    : null;
+  /**
+   * Check if Gemini API Key is configured on the backend
+   */
+  public static isConfigured(): boolean {
+    const key = config.geminiApiKey;
+    return !!key && key.trim().length > 0;
+  }
 
   /**
    * Safe execution wrapper for Google Gemini API.
-   * Does NOT generate fake responses if API is offline.
+   * Parses SDK errors into structured error objects.
    */
   private static async getModelResponse(prompt: string, systemInstruction?: string): Promise<string> {
-    if (!this.genAI || !config.geminiApiKey || !config.geminiApiKey.startsWith('AIzaSy')) {
-      throw new Error('FORGE AI is temporarily unavailable. Please try again.');
+    const apiKey = config.geminiApiKey;
+
+    if (!apiKey || apiKey.trim().length === 0) {
+      const err: IGeminiError = {
+        code: 'GEMINI_NOT_CONFIGURED',
+        message: 'FORGE AI is not configured. Please add GEMINI_API_KEY to the backend environment.',
+        status: 400,
+      };
+      throw err;
+    }
+
+    let genAI: GoogleGenerativeAI;
+    try {
+      genAI = new GoogleGenerativeAI(apiKey);
+    } catch (initErr: any) {
+      const err: IGeminiError = {
+        code: 'GEMINI_AUTH_FAILED',
+        message: 'FORGE AI authentication failed. Please check the Gemini API configuration.',
+        status: 401,
+      };
+      throw err;
     }
 
     const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    let lastError: any = null;
 
     for (const modelName of candidateModels) {
       try {
-        const model = this.genAI.getGenerativeModel({
+        const model = genAI.getGenerativeModel({
           model: modelName,
           systemInstruction,
         });
@@ -29,11 +59,46 @@ export class GeminiService {
         const text = response.text();
         if (text && text.trim().length > 0) return text;
       } catch (err: any) {
-        // Try next candidate model
+        lastError = err;
+        const errStr = (err?.message || '').toLowerCase();
+
+        if (errStr.includes('api_key_invalid') || errStr.includes('401') || errStr.includes('403') || errStr.includes('api key not valid') || errStr.includes('unauthorized')) {
+          const authErr: IGeminiError = {
+            code: 'GEMINI_AUTH_FAILED',
+            message: 'FORGE AI authentication failed. Please check the Gemini API configuration.',
+            status: 401,
+          };
+          throw authErr;
+        }
+
+        if (errStr.includes('429') || errStr.includes('resource_exhausted') || errStr.includes('quota') || errStr.includes('rate limit')) {
+          const limitErr: IGeminiError = {
+            code: 'GEMINI_RATE_LIMIT',
+            message: 'FORGE AI is temporarily rate-limited. Please try again shortly.',
+            status: 429,
+          };
+          throw limitErr;
+        }
       }
     }
 
-    throw new Error('FORGE AI is temporarily unavailable. Please try again.');
+    // Parse final caught error if all candidate models failed
+    const finalErrStr = (lastError?.message || '').toLowerCase();
+    if (finalErrStr.includes('500') || finalErrStr.includes('503') || finalErrStr.includes('overloaded') || finalErrStr.includes('unavailable')) {
+      const servErr: IGeminiError = {
+        code: 'GEMINI_SERVICE_ERROR',
+        message: 'FORGE AI service error. Please try again shortly.',
+        status: 503,
+      };
+      throw servErr;
+    }
+
+    const genErr: IGeminiError = {
+      code: 'GEMINI_ERROR',
+      message: lastError?.message || 'FORGE AI could not complete this request. Please try again.',
+      status: 500,
+    };
+    throw genErr;
   }
 
   /**
@@ -42,7 +107,6 @@ export class GeminiService {
   private static classifyQuestionIntent(message: string): 'technical' | 'career' | 'github' | 'resume' | 'projects' | 'followup' | 'general' {
     const q = message.toLowerCase().trim();
 
-    // Check follow-ups (short questions referencing pronouns like "it", "which one", "why", "how so")
     const isShortFollowUp = (q.startsWith('is it') || q.startsWith('which one') || q.startsWith('how about') || q.startsWith('why is it') || q.includes('for backend') || q.includes('for frontend')) && q.length < 40;
     if (isShortFollowUp) {
       return 'followup';
@@ -89,7 +153,7 @@ export class GeminiService {
   }
 
   /**
-   * FORGE AI Chat Interaction — Strict 22 Rules & Direct Relevance
+   * FORGE AI Chat Interaction — Strict System Rules & Direct Relevance
    */
   public static async chatWithCareerCoach(params: {
     message: string;
@@ -183,7 +247,6 @@ RULES:
       }
     }
 
-    // Format Recent Conversation History (up to 4 past turns for context / follow-ups)
     const recentHistory = conversationHistory
       .slice(-6)
       .map((h) => `${h.role.toUpperCase()}: ${h.content}`)
@@ -196,18 +259,7 @@ ${message}
 INSTRUCTION:
 Answer the exact question in <current_user_message>. Stay strictly on topic.`;
 
-    try {
-      const responseText = await this.getModelResponse(prompt, systemInstruction);
-      if (!responseText || responseText.trim().length === 0) {
-        throw new Error('FORGE AI is temporarily unavailable. Please try again.');
-      }
-      return responseText;
-    } catch (err: any) {
-      if (err.message && err.message.includes('temporarily unavailable')) {
-        throw err;
-      }
-      throw new Error('FORGE AI is temporarily unavailable. Please try again.');
-    }
+    return await this.getModelResponse(prompt, systemInstruction);
   }
 
   /**

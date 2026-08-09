@@ -137,10 +137,12 @@ export default function AICoachPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const suggestions = [
-    'What is React?',
-    'What is MongoDB?',
-    'Explain binary search.',
-    'What is Node.js?',
+    'What should I learn this week?',
+    'Analyze my current skill gaps.',
+    'How can I improve my GitHub profile?',
+    'Review my project portfolio.',
+    'How should I prepare for technical interviews?',
+    'Help me improve my career roadmap.',
   ];
 
   useEffect(() => {
@@ -161,6 +163,28 @@ export default function AICoachPage() {
       // Silent catch
     }
   }
+
+  const parseErrorMessage = (err: any): string => {
+    const code = err?.code || err?.response?.data?.code || '';
+    const msg = err?.message || err?.response?.data?.message || '';
+
+    if (code === 'GEMINI_NOT_CONFIGURED' || msg.includes('not configured')) {
+      return 'FORGE AI is not configured yet. Please configure the Gemini API key.';
+    }
+    if (code === 'GEMINI_AUTH_FAILED' || msg.includes('authentication failed')) {
+      return 'FORGE AI authentication failed. Please check the Gemini API configuration.';
+    }
+    if (code === 'GEMINI_RATE_LIMIT' || msg.includes('rate-limited')) {
+      return 'FORGE AI is temporarily rate-limited. Please try again shortly.';
+    }
+    if (code === 'GEMINI_SERVICE_ERROR' || msg.includes('service error')) {
+      return 'FORGE AI backend is unavailable. Please check that the server is running.';
+    }
+    if (code === 'UNAUTHORIZED' || msg.includes('session has expired')) {
+      return 'Your session has expired. Please sign in again.';
+    }
+    return 'FORGE AI could not complete this request. Please try again.';
+  };
 
   const handleSend = async (textToSend?: string) => {
     const query = (textToSend || input).trim();
@@ -190,25 +214,26 @@ export default function AICoachPage() {
       } else if (res && res.reply) {
         setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply, timestamp: new Date() }]);
       } else {
+        const errorText = parseErrorMessage(res);
         setMessages((prev) => [
           ...prev,
           {
             id: `a-${Date.now()}`,
             role: 'assistant',
-            content: 'FORGE AI is temporarily unavailable. Please try again.',
+            content: errorText,
             isError: true,
             timestamp: new Date(),
           },
         ]);
       }
     } catch (err: any) {
-      const errMsg = 'FORGE AI is temporarily unavailable. Please try again.';
+      const errorText = parseErrorMessage(err);
       setMessages((prev) => [
         ...prev,
         {
           id: `a-${Date.now()}`,
           role: 'assistant',
-          content: errMsg,
+          content: errorText,
           isError: true,
           timestamp: new Date(),
         },
@@ -276,7 +301,7 @@ export default function AICoachPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleNewChat}
-                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm"
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
                 title="Start New Conversation"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -296,7 +321,7 @@ export default function AICoachPage() {
           {/* Messages Scroll Area */}
           <div className="flex-1 overflow-y-auto py-6 space-y-6 pr-2">
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-lg mx-auto py-12">
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-6 max-w-xl mx-auto py-10">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-purple-500/20">
                   <Sparkles className="w-8 h-8 fill-white" />
                 </div>
@@ -307,13 +332,13 @@ export default function AICoachPage() {
                   </p>
                 </div>
 
-                {/* Suggested Prompts */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full text-left pt-2">
+                {/* Suggested Prompts Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full text-left pt-2">
                   {suggestions.map((s, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleSend(s)}
-                      className="p-3 rounded-xl bg-card hover:bg-secondary border border-border text-xs text-foreground transition-colors text-left font-medium active:scale-[0.99]"
+                      className="p-3 rounded-xl bg-card hover:bg-secondary border border-border text-xs text-foreground transition-all text-left font-medium hover:border-purple-500/40 active:scale-[0.99] shadow-sm"
                     >
                       &quot;{s}&quot;
                     </button>
@@ -351,10 +376,10 @@ export default function AICoachPage() {
 
                         {/* Error Retry Button */}
                         {m.isError && (
-                          <div className="pt-2">
+                          <div className="pt-3 border-t border-red-500/20 mt-2">
                             <button
                               onClick={() => handleSend(lastUserPrompt)}
-                              className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs border border-red-500/30 flex items-center gap-1.5 transition-colors"
+                              className="px-3.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs border border-red-500/30 flex items-center gap-1.5 transition-all active:scale-95"
                             >
                               <RefreshCw className="w-3.5 h-3.5" />
                               Retry
@@ -364,7 +389,7 @@ export default function AICoachPage() {
 
                         {/* Actions Toolbar on Assistant Message */}
                         {!m.isError && (
-                          <div className="flex items-center gap-2 pt-2 border-t border-border/40 text-[11px] text-muted-foreground opacity-90 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-3 pt-2 border-t border-border/40 text-[11px] text-muted-foreground opacity-90 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => handleCopy(m.content, idx)}
                               className="flex items-center gap-1 hover:text-foreground transition-colors"
@@ -422,7 +447,7 @@ export default function AICoachPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask FORGE AI (e.g. 'What is React?' or 'Explain binary search')..."
-                className="w-full pl-4 pr-12 py-3 rounded-xl bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 transition-colors shadow-inner resize-none min-h-[44px] max-h-32"
+                className="w-full pl-4 pr-12 py-3 rounded-xl bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 transition-colors shadow-inner resize-none min-h-[44px] max-h-32 leading-normal"
               />
               <button
                 type="submit"
