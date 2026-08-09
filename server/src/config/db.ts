@@ -1,8 +1,29 @@
 import mongoose from 'mongoose';
 import { config } from './env.js';
+import { QuestionModel } from '../models/Question.js';
+import { CURATED_QUESTIONS } from '../data/curatedQuestions.js';
 
 export let isMongoConnected = false;
 let memoryServerInstance: any = null;
+
+export const seedCuratedQuestions = async () => {
+  try {
+    const existingCount = await QuestionModel.countDocuments({ isAiGenerated: { $ne: true } });
+    if (existingCount < CURATED_QUESTIONS.length) {
+      console.log(`[Question Bank] Seeding/Updating ${CURATED_QUESTIONS.length} curated questions into MongoDB...`);
+      for (const q of CURATED_QUESTIONS) {
+        await QuestionModel.updateOne(
+          { id: q.id },
+          { $set: { ...q, isAiGenerated: false } },
+          { upsert: true }
+        );
+      }
+      console.log('[Question Bank] Curated questions successfully seeded.');
+    }
+  } catch (err: any) {
+    console.warn(`[Question Bank Warning] Failed to seed curated questions: ${err?.message || err}`);
+  }
+};
 
 export const connectDB = async () => {
   mongoose.set('strictQuery', false);
@@ -32,6 +53,7 @@ export const connectDB = async () => {
       });
       isMongoConnected = true;
       console.log(`[Database] Connected to Primary MongoDB host: ${conn.connection.host}`);
+      await seedCuratedQuestions();
       return;
     } catch (primaryErr: any) {
       console.warn(`[Database Warning] Primary MongoDB connection failed (${primaryErr?.message || primaryErr}). Falling back to secondary...`);
@@ -48,6 +70,7 @@ export const connectDB = async () => {
       });
       isMongoConnected = true;
       console.log(`[Database] Connected to Local MongoDB host: ${conn.connection.host}`);
+      await seedCuratedQuestions();
       return;
     } catch (localErr: any) {
       console.warn('[Database Warning] Local MongoDB unavailable. Launching In-Memory MongoDB Server fallback...');
@@ -63,6 +86,7 @@ export const connectDB = async () => {
     const conn = await mongoose.connect(memoryUri);
     isMongoConnected = true;
     console.log(`[Database] Connected to In-Memory MongoDB Server: ${conn.connection.host}`);
+    await seedCuratedQuestions();
   } catch (memErr: any) {
     console.error('[Database Error] Failed to start In-Memory MongoDB Server:', memErr?.message || memErr);
     isMongoConnected = false;

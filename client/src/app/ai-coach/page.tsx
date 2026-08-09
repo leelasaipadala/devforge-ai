@@ -6,7 +6,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ApiClient } from '@/lib/api';
 
-// Rich Markdown Formatter for Perfect AI Response Styling
+// Rich Markdown Formatter for FORGE AI Response Styling
 function FormattedMarkdown({ content }: { content: string }) {
   if (!content) return null;
 
@@ -124,56 +124,6 @@ function parseInline(text: string): React.ReactNode {
   });
 }
 
-// Generate prompt-aware fallback AI response for client catch
-function getPromptAwareFallback(query: string): string {
-  const q = query.toLowerCase().trim();
-
-  if (q.includes('hii') || q.includes('hello') || q.includes('hey') || q === 'hi') {
-    return `### Hello Developer! 👋
-
-Welcome to **FORGE Career Intelligence**. How can I assist you with your software engineering goals today?
-
-1. **Skill Gap Analysis**: Review tech stacks for target engineering roles.
-2. **Project Ideas**: Explore portfolio application concepts.
-3. **Interview Preparation**: Practice STAR method, DSA, and System Design questions.`;
-  }
-
-  if (q.includes('tell me') || q.includes('explain') || q.includes('more') || q === 'tell me') {
-    return `### Detailed Execution Plan for Software Engineers
-
-Here are the key benchmarks to accelerate your career growth:
-
-#### 1. System Architecture & Database Indexing
-- Build REST & GraphQL APIs with Express and Mongoose.
-- Use PostgreSQL/MongoDB index optimization and Redis caching to handle high request volumes.
-
-#### 2. Portfolio Project Excellence
-- Construct full-stack web applications with Docker containerization, CI/CD, and live deployments.
-- Write clean README documentation including API tables and architecture diagrams.
-
-#### 3. Technical Interview Preparedness
-- Practice 1-2 Data Structures & Algorithms (DSA) problems daily.
-- Prepare system design fundamentals: Load Balancing, Database Sharding, Caching, and API Rate Limiting.`;
-  }
-
-  if (q.includes('project') || q.includes('build') || q.includes('portfolio')) {
-    return `### Recommended Portfolio Projects
-
-1. **Automated PR Code Review Assistant**: Inspects GitHub PRs and flags security vulnerabilities.
-2. **Distributed Log Telemetry Engine**: Microservices logger tracking latency percentiles and error rates.
-3. **Collaborative API Schema Portal**: Prototyping workspace for REST schemas and mock servers.`;
-  }
-
-  const cap = query.charAt(0).toUpperCase() + query.slice(1);
-  return `### FORGE Career Intelligence: ${cap}
-
-Regarding **"${query}"**:
-
-1. **Core Proficiency**: Focus on mastering REST/GraphQL API design and database optimizations.
-2. **Portfolio Quality**: Ensure all projects have live deployments and clear README documentation on GitHub.
-3. **Interview Mastery**: Articulate architecture trade-offs clearly during technical interview rounds.`;
-}
-
 export default function AICoachPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
@@ -182,10 +132,10 @@ export default function AICoachPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const suggestions = [
-    'What should I learn next based on my target role?',
-    'Analyze my current skill gaps vs market requirements',
-    'How can I prepare for technical software interviews?',
-    'Suggest 3 high-impact portfolio projects to build',
+    'What should I learn this week?',
+    'Explain Java inheritance.',
+    'What is a closure in JavaScript?',
+    'How can I improve my GitHub?',
   ];
 
   useEffect(() => {
@@ -203,7 +153,7 @@ export default function AICoachPage() {
         setMessages(res.messages);
       }
     } catch (err) {
-      // Silent catch — prevent Next.js dev overlay popups
+      // Silent catch
     }
   }
 
@@ -223,17 +173,24 @@ export default function AICoachPage() {
       } else if (res && res.reply) {
         setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply, timestamp: new Date() }]);
       } else {
-        const fallbackText = getPromptAwareFallback(query);
-        setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: fallbackText, timestamp: new Date() }]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-${Date.now()}`,
+            role: 'assistant',
+            content: 'FORGE AI is currently unavailable. Please try again later.',
+            timestamp: new Date(),
+          },
+        ]);
       }
     } catch (err: any) {
-      const fallbackText = getPromptAwareFallback(query);
+      const errMsg = err?.message || 'FORGE AI is currently unavailable. Please try again later.';
       setMessages((prev) => [
         ...prev,
         {
           id: `a-${Date.now()}`,
           role: 'assistant',
-          content: fallbackText,
+          content: errMsg,
           timestamp: new Date(),
         },
       ]);
@@ -352,7 +309,7 @@ export default function AICoachPage() {
                 </div>
                 <div className="px-4 py-3 rounded-2xl bg-card border border-border text-xs text-muted-foreground flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
-                  <span>FORGE AI is analyzing your career context...</span>
+                  <span>FORGE AI is analyzing your current question...</span>
                 </div>
               </div>
             )}
@@ -373,7 +330,7 @@ export default function AICoachPage() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask FORGE AI (e.g. 'Am I ready for a backend role?')..."
+                placeholder="Ask FORGE AI (e.g. 'Explain Java inheritance' or 'What is a closure in JS?')..."
                 className="w-full pl-4 pr-12 py-3 rounded-xl bg-card border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-purple-500 transition-colors shadow-inner"
               />
               <button
