@@ -40,11 +40,19 @@ export class GeminiService {
    * Smart Career Engine Fallback Response Generator
    */
   private static generateSmartFallbackResponse(prompt: string, userContext?: any): string {
-    const q = prompt.toLowerCase();
+    // Extract actual user question from prompt wrapper if present
+    let rawQuery = prompt;
+    if (prompt.includes('USER QUESTION:')) {
+      const splitParts = prompt.split('USER QUESTION:');
+      rawQuery = splitParts[splitParts.length - 1].trim();
+    }
+
+    const q = rawQuery.toLowerCase().trim();
     const role = userContext?.targetRole || 'Software Engineer';
     const name = userContext?.name || 'Developer';
 
-    if (q.includes('hii') || q.includes('hello') || q.includes('hey') || q.includes('greetings')) {
+    // 1. Greetings
+    if (q.includes('hii') || q.includes('hello') || q.includes('hey') || q === 'hi' || q.includes('greetings')) {
       return `### Hello ${name}! 👋
 
 Welcome to **FORGE Career Intelligence** — your personalized software engineering career strategy advisor.
@@ -53,12 +61,61 @@ Here is how I can accelerate your career progression today:
 
 1. **Skill Gap Analysis**: Evaluate your current technical stack against real market demands for **${role}** positions.
 2. **Portfolio Project Strategy**: Architect high-impact full-stack and distributed projects to showcase on GitHub.
-3. **Interview Preparation**: Practice mock interview questions spanning Data Structures & Algorithms, REST/GraphQL APIs, System Design, and Database Architecture.
+3. **Interview Preparation**: Practice mock interview questions spanning Data Structures & Algorithms, REST APIs, System Design, and Database Architecture.
 4. **ATS Resume Optimization**: Enhance your resume structure to maximize ATS parser pass rates.
 
 How can I help you take the next step in your career journey today?`;
     }
 
+    // 2. Follow-up requests ("tell me", "tell me more", "explain", "continue")
+    if (q.includes('tell me') || q.includes('explain') || q.includes('more') || q === 'tell me' || q.includes('details')) {
+      return `### Key Action Plan for ${role} Roles
+
+Here is a detailed deep-dive into the top 4 priorities to land a **${role}** position:
+
+#### 1. Full-Stack / Backend Architecture Mastery
+- Build RESTful & GraphQL APIs with Node.js/TypeScript, Express, and Mongoose.
+- Implement robust JWT & OAuth 2.0 authentication flows with role-based access control.
+- Optimize database queries with indexing, aggregation pipelines, and Redis caching.
+
+#### 2. Portfolio Project Excellence
+- Architect 2-3 production-grade applications addressing real-world problems.
+- Include Docker containerization, GitHub Actions CI/CD, and live Vercel/Render deployments.
+- Write thorough README documentation with architecture diagrams and API endpoint tables.
+
+#### 3. Technical Interview Preparedness
+- Practice 1-2 Data Structures & Algorithm (DSA) problems daily (Arrays, HashMaps, Two Pointers, Trees).
+- Master System Design fundamentals: Caching, Load Balancing, Database Sharding, and API Rate Limiting.
+
+#### 4. Resume & Online Presence
+- Format your ATS resume using clean Markdown/PDF headers with quantifiable metric bullets.
+- Link verified GitHub repositories with active contribution streaks and clear documentation.
+
+What specific area would you like to focus on next?`;
+    }
+
+    // 3. Project Recommendations
+    if (q.includes('project') || q.includes('build') || q.includes('portfolio') || q.includes('idea')) {
+      return `### High-Impact Portfolio Project Ideas for ${role}
+
+Here are 3 unique, production-grade project concepts tailored for a **${role}**:
+
+#### 1. Automated Pull Request Code Review Assistant
+- **Idea**: A developer utility platform that inspects GitHub PRs, flags potential security flaws, and suggests clean code optimizations.
+- **Key Tech**: TypeScript, Node.js, GitHub REST API, Docker.
+
+#### 2. Distributed Log Aggregation & Telemetry Engine
+- **Idea**: A real-time microservice telemetry monitor that ingests application logs, tracks latency percentiles, and triggers alerts.
+- **Key Tech**: Express.js, WebSockets, MongoDB Aggregations, Redis.
+
+#### 3. Collaborative API Schema & Mock Server Portal
+- **Idea**: A developer workspace allowing frontend and backend teams to prototype REST schemas, generate mock servers, and run integration tests.
+- **Key Tech**: Next.js, Express, TypeScript, Swagger/OpenAPI.
+
+Would you like architecture guidance or database schema design for any of these projects?`;
+    }
+
+    // 4. Career Readiness
     if (q.includes('ready') || q.includes('readiness') || q.includes('backend') || q.includes('frontend') || q.includes('role')) {
       return `### Career Readiness Evaluation for ${role}
 
@@ -76,6 +133,7 @@ Based on your current developer profile and market benchmarks, here is your read
 Would you like specific interview practice questions or project recommendations for **${role}**?`;
     }
 
+    // 5. Skills & Tech Stack
     if (q.includes('skill') || q.includes('learn') || q.includes('technology') || q.includes('stack')) {
       return `### Recommended Technical Stack for ${role}
 
@@ -95,7 +153,8 @@ To stand out in competitive software engineering hiring pipelines, focus on mast
 - **DevOps**: Docker, Git Branching Workflows, Vercel/Render Deployments.`;
     }
 
-    if (q.includes('interview') || q.includes('prepare') || q.includes('question') || q.includes('dsa')) {
+    // 6. Interview Strategy
+    if (q.includes('interview') || q.includes('prepare') || q.includes('question') || q.includes('dsa') || q.includes('system design')) {
       return `### Software Engineering Interview Strategy Guide
 
 To excel in technical interview rounds for **${role}** roles:
@@ -113,15 +172,29 @@ To excel in technical interview rounds for **${role}** roles:
 - Prepare 3 compelling stories: a tough technical bug solved, a team conflict resolved, and a performance optimization win.`;
     }
 
-    return `### FORGE Career Intelligence Insight
+    // 7. Resume & ATS
+    if (q.includes('resume') || q.includes('ats') || q.includes('cv')) {
+      return `### ATS Resume Optimization Strategy for ${role}
 
-In software engineering, career growth is driven by three core factors:
+To ensure your resume passes ATS parsers and catches engineering managers' attention:
 
-1. **Proven Technical Output**: Deployed applications with clean, tested, and documented GitHub source code.
-2. **Targeted Skill Mastery**: Building deep hands-on expertise in backend/frontend architectures rather than surface-level tutorials.
-3. **Communication & Trade-off Analysis**: Clearly articulating architectural decisions, time/space complexity, and trade-offs during technical interviews.
+1. **Clear Header Structure**: Use standard section titles: *Skills*, *Experience*, *Projects*, *Education*.
+2. **Quantifiable Bullet Points**: Frame accomplishments using the formula: *Accomplished X by implementing Y, resulting in Z% improvement*.
+3. **Verified Repository Links**: Provide active GitHub URLs for every project mentioned.
+4. **Keyword Matching**: Naturally include core target role keywords (TypeScript, Node.js, Express, React, REST APIs, Docker, MongoDB).`;
+    }
 
-Feel free to ask about portfolio project ideas, skill gap analysis, or technical interview practice for **${role}**!`;
+    // 8. Dynamic Fallback for any query
+    const capitalizedQuery = rawQuery.charAt(0).toUpperCase() + rawQuery.slice(1);
+    return `### FORGE Career Intelligence: ${capitalizedQuery}
+
+Regarding **"${rawQuery}"** for your goal as a **${role}**:
+
+1. **Targeted Focus**: Prioritize building clean, modular code implementations rather than superficial tutorials.
+2. **Production Quality**: Ensure your projects include automated error handling, TypeScript type safety, and responsive UI components.
+3. **Interview Articulation**: Be prepared to explain the architectural trade-offs, database indexing choices, and API design patterns used in your projects.
+
+Feel free to ask for specific project ideas, interview questions, or skill roadmaps tailored to your target role!`;
   }
 
   /**
