@@ -9,11 +9,11 @@ export interface IGeminiError {
 
 export class GeminiService {
   /**
-   * Check if Gemini API Key is configured
+   * Check if Gemini API Key is configured with a valid format (starts with AIzaSy)
    */
   public static isConfigured(): boolean {
     const key = config.geminiApiKey;
-    return !!key && key.trim().length > 0;
+    return !!key && key.trim().length > 0 && key.startsWith('AIzaSy');
   }
 
   /**
@@ -47,6 +47,15 @@ export class GeminiService {
         code: 'GEMINI_NOT_CONFIGURED',
         message: 'FORGE AI is not configured. Please configure GEMINI_API_KEY on the server.',
         status: 400,
+      };
+      throw err;
+    }
+
+    if (!apiKey.startsWith('AIzaSy')) {
+      const err: IGeminiError = {
+        code: 'GEMINI_AUTH_FAILED',
+        message: 'FORGE AI authentication failed. Please check the server Gemini configuration (GEMINI_API_KEY must start with AIzaSy).',
+        status: 401,
       };
       throw err;
     }
