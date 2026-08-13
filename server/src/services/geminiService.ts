@@ -13,7 +13,7 @@ export class GeminiService {
    */
   public static isConfigured(): boolean {
     const key = config.geminiApiKey;
-    return !!key && key.trim().length > 0 && key.startsWith('AIzaSy');
+    return !!key && key.trim().length > 0 && (key.startsWith('AIzaSy') || key.startsWith('AQ.'));
   }
 
   /**
@@ -63,8 +63,8 @@ export class GeminiService {
     const apiKey = config.geminiApiKey;
 
     // Fall back gracefully if API Key is missing or invalid format (not starting with AIzaSy)
-    if (!apiKey || apiKey.trim().length === 0 || !apiKey.startsWith('AIzaSy')) {
-      console.warn('[FORGE AI Notice] GEMINI_API_KEY missing or invalid format (must start with AIzaSy). Serving smart fallback response.');
+    if (!apiKey || apiKey.trim().length === 0 || !(apiKey.startsWith('AIzaSy') || apiKey.startsWith('AQ.'))) {
+      console.warn('[FORGE AI Notice] GEMINI_API_KEY missing or invalid format (must start with AIzaSy or AQ.). Serving smart fallback response.');
       return this.generateFallbackResponse(prompt);
     }
 
