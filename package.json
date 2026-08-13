@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "dev:server": "npm run dev --prefix server",
-    "dev:client": "npm run dev --prefix client",
+    "dev:client": "dotenv -e .env -- npm run dev --prefix client",
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,magenta\" \"npm run dev:server\" \"npm run dev:client\"",
     "build:server": "npm run build --prefix server",
-    "build:client": "npm run build --prefix client",
+    "build:client": "dotenv -e .env -- npm run build --prefix client",
     "build": "npm run build:server && npm run build:client",
     "type-check": "npm run type-check --prefix server && npm run type-check --prefix client"
   },
   "devDependencies": {
-    "concurrently": "^9.2.4"
+    "concurrently": "^9.2.4",
+    "dotenv-cli": "^11.0.0"
   }
 }
