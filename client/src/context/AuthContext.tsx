@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [backendProfile, setBackendProfile] = useState<Partial<User> | null>(null);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
-  // Setup ApiClient token getter dynamically for Clerk
+  // Setup ApiClient token getter dynamically for Clerk & Demo Mode
   useEffect(() => {
     ApiClient.setTokenGetter(async () => {
       if (isClerkSignedIn) {
@@ -60,7 +60,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const token = await getToken();
           if (token) return token;
         } catch {
-          // Clerk token retrieval failed — do NOT fall back
+          // Clerk token retrieval failed
+        }
+      }
+      if (typeof window !== 'undefined') {
+        const demoSession = localStorage.getItem('devforge_demo_session');
+        if (demoSession) {
+          try {
+            const parsed = JSON.parse(demoSession);
+            if (parsed && parsed.token) {
+              return parsed.token;
+            }
+          } catch {
+            // Ignore parse error
+          }
         }
       }
       return null;

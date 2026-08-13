@@ -22,10 +22,6 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Secondary factor state (only used if Clerk explicitly requires second factor / MFA)
-  const [pendingFactorAttempt, setPendingFactorAttempt] = useState<any>(null);
-  const [factorCode, setFactorCode] = useState('');
-
   // Prefetch dashboard route for instant navigation after login
   useEffect(() => {
     router.prefetch('/dashboard');
@@ -98,26 +94,11 @@ export default function SignInPage() {
           }
           router.push('/dashboard');
           return;
-        } else if (result.status === 'needs_second_factor' || result.status === 'needs_first_factor') {
-          // Additional factor explicitly required by Clerk (e.g., MFA)
-          setPendingFactorAttempt(result);
-          setError('Additional verification is required to complete sign-in.');
         } else {
           setError('Sign in incomplete. Please verify your credentials and try again.');
         }
       } else {
-        // Password strategy not found in supported first factors (e.g. Google OAuth account)
-        const emailCodeFactor = supportedFactors.find((f: any) => f.strategy === 'email_code');
-        if (emailCodeFactor && (emailCodeFactor as any).emailAddressId) {
-          await signinAttempt.prepareFirstFactor({
-            strategy: 'email_code',
-            emailAddressId: (emailCodeFactor as any).emailAddressId,
-          });
-          setPendingFactorAttempt(signinAttempt);
-          setError('A verification code has been sent to your email to complete sign in.');
-        } else {
-          setError('No password sign-in method found for this email. If you signed up with Google, click "Continue with Google".');
-        }
+        setError('No password sign-in method found for this account. If you signed up with Google, click "Continue with Google".');
       }
     } catch (err: any) {
       const rawMessage = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || '';
@@ -133,42 +114,6 @@ export default function SignInPage() {
       } else {
         setError(formatClerkError(err));
       }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerifyFactorCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!factorCode || !pendingFactorAttempt) return;
-
-    setIsSubmitting(true);
-    setError('');
-
-    try {
-      let result;
-      if (pendingFactorAttempt.status === 'needs_second_factor') {
-        result = await pendingFactorAttempt.attemptSecondFactor({
-          strategy: 'email_code',
-          code: factorCode.trim(),
-        });
-      } else {
-        result = await pendingFactorAttempt.attemptFirstFactor({
-          strategy: 'email_code',
-          code: factorCode.trim(),
-        });
-      }
-
-      if (result.status === 'complete') {
-        if (result.createdSessionId) {
-          await clerk.setActive({ session: result.createdSessionId });
-        }
-        router.push('/dashboard');
-      } else {
-        setError('Verification code incomplete. Please try again.');
-      }
-    } catch (err: any) {
-      setError(formatClerkError(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -214,14 +159,8 @@ export default function SignInPage() {
           <Link href="/" className="inline-flex items-center gap-2 group mb-2 justify-center">
             <DevForgeLogo variant="full" size="lg" />
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {pendingFactorAttempt ? 'Additional Verification' : 'Welcome back'}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            {pendingFactorAttempt
-              ? `Enter the code sent to ${email} to complete sign-in`
-              : 'Career Command Center for Engineers & Developers'}
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
+          <p className="text-xs text-muted-foreground">Career Command Center for Engineers & Developers</p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -250,136 +189,93 @@ export default function SignInPage() {
           </div>
         )}
 
-        {pendingFactorAttempt ? (
-          <form onSubmit={handleVerifyFactorCode} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Verification Code</label>
-              <div className="relative">
-                <KeyRound className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
-                <input
-                  type="text"
-                  value={factorCode}
-                  onChange={(e) => setFactorCode(e.target.value)}
-                  placeholder="Enter code"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-secondary/80 border border-border text-xs text-foreground focus:outline-none focus:border-blue-500 transition-colors tracking-widest font-mono"
-                  required
-                  autoFocus
-                />
-              </div>
+        <form onSubmit={handleSignIn} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Email Address</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="developer@company.com"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-secondary/80 border border-border text-xs text-foreground focus:outline-none focus:border-blue-500 transition-colors"
+                required
+              />
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all duration-150 active:scale-[0.99] shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              <span>{isSubmitting ? 'Verifying...' : 'Complete Sign In'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setPendingFactorAttempt(null);
-                setFactorCode('');
-                setError('');
-              }}
-              className="w-full text-xs text-muted-foreground hover:underline text-center"
-            >
-              Back to sign-in form
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleSignIn} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Email Address</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="developer@company.com"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-secondary/80 border border-border text-xs text-foreground focus:outline-none focus:border-blue-500 transition-colors"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-medium text-muted-foreground">Password</label>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Password reset options can be configured in your Clerk dashboard.');
-                  }}
-                  className="text-[11px] text-blue-500 hover:underline"
-                >
-                  Forgot password?
-                </a>
-              </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-secondary/80 border border-border text-xs text-foreground focus:outline-none focus:border-blue-500 transition-colors"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting || !clerk?.loaded}
-              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all duration-150 active:scale-[0.99] shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              <span>{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
-            </button>
-          </form>
-        )}
-
-        {!pendingFactorAttempt && (
-          <>
-            <div className="relative flex items-center justify-center my-4">
-              <div className="border-t border-border w-full"></div>
-              <span className="bg-card px-3 text-[11px] text-muted-foreground font-medium uppercase absolute">Or</span>
-            </div>
-
-            {/* Google OAuth & Isolated Demo buttons */}
-            <div className="space-y-2.5">
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={!clerk?.loaded}
-                className="w-full py-2.5 rounded-xl bg-secondary/80 hover:bg-accent text-foreground font-medium text-xs border border-border flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.99] disabled:opacity-50"
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-medium text-muted-foreground">Password</label>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  alert('Password reset options can be configured in your Clerk dashboard.');
+                }}
+                className="text-[11px] text-blue-500 hover:underline"
               >
-                <ShieldCheck className="w-4 h-4 text-blue-500" />
-                <span>Continue with Google</span>
-              </button>
-
+                Forgot password?
+              </a>
+            </div>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-secondary/80 border border-border text-xs text-foreground focus:outline-none focus:border-blue-500 transition-colors"
+                required
+              />
               <button
-                onClick={handleDemoSignIn}
-                className="w-full py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-semibold text-xs border border-purple-500/30 flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.99]"
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                <UserCheck className="w-4 h-4" />
-                <span>Try Demo Account</span>
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-          </>
-        )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting || !clerk?.loaded}
+            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all duration-150 active:scale-[0.99] shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            <span>{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
+          </button>
+        </form>
+
+        <div className="relative flex items-center justify-center my-4">
+          <div className="border-t border-border w-full"></div>
+          <span className="bg-card px-3 text-[11px] text-muted-foreground font-medium uppercase absolute">Or</span>
+        </div>
+
+        {/* Google OAuth & Isolated Demo buttons */}
+        <div className="space-y-2.5">
+          <button
+            onClick={handleGoogleSignIn}
+            disabled={!clerk?.loaded}
+            className="w-full py-2.5 rounded-xl bg-secondary/80 hover:bg-accent text-foreground font-medium text-xs border border-border flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.99] disabled:opacity-50"
+          >
+            <ShieldCheck className="w-4 h-4 text-blue-500" />
+            <span>Continue with Google</span>
+          </button>
+
+          <button
+            onClick={handleDemoSignIn}
+            className="w-full py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-semibold text-xs border border-purple-500/30 flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.99]"
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Try Demo Account</span>
+          </button>
+        </div>
+
+
 
         {/* Footer */}
         <div className="pt-4 border-t border-border text-xs text-muted-foreground flex justify-between">

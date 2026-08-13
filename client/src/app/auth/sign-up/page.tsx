@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useClerk, useUser } from '@clerk/nextjs';
@@ -32,23 +32,23 @@ export default function SignUpPage() {
   const [code, setCode] = useState('');
   const [isResending, setIsResending] = useState(false);
 
-  // Live password validation criteria
-  const reqMinLength = password.length >= 8;
-  const reqCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
-  const reqNumber = /\d/.test(password);
-  const reqSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  // Live password validation criteria (memoized for zero keystroke lag)
+  const { reqMinLength, reqCase, reqNumber, reqSpecial, strength } = useMemo(() => {
+    const minLen = password.length >= 8;
+    const isCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
+    const num = /\d/.test(password);
+    const spec = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    const count = [minLen, isCase, num, spec].filter(Boolean).length;
 
-  const satisfiedCount = [reqMinLength, reqCase, reqNumber, reqSpecial].filter(Boolean).length;
-
-  const getStrengthInfo = () => {
-    if (!password) return { label: '', barBg: 'bg-transparent', textColor: 'text-muted-foreground', width: 'w-0' };
-    if (satisfiedCount <= 1) return { label: 'Weak', barBg: 'bg-red-500', textColor: 'text-red-500', width: 'w-1/4' };
-    if (satisfiedCount === 2) return { label: 'Fair', barBg: 'bg-amber-500', textColor: 'text-amber-500', width: 'w-2/4' };
-    if (satisfiedCount === 3) return { label: 'Good', barBg: 'bg-blue-500', textColor: 'text-blue-500', width: 'w-3/4' };
-    return { label: 'Strong', barBg: 'bg-emerald-500', textColor: 'text-emerald-500', width: 'w-full' };
-  };
-
-  const strength = getStrengthInfo();
+    let info = { label: '', barBg: 'bg-transparent', textColor: 'text-muted-foreground', width: 'w-0' };
+    if (password) {
+      if (count <= 1) info = { label: 'Weak', barBg: 'bg-red-500', textColor: 'text-red-500', width: 'w-1/4' };
+      else if (count === 2) info = { label: 'Fair', barBg: 'bg-amber-500', textColor: 'text-amber-500', width: 'w-2/4' };
+      else if (count === 3) info = { label: 'Good', barBg: 'bg-blue-500', textColor: 'text-blue-500', width: 'w-3/4' };
+      else info = { label: 'Strong', barBg: 'bg-emerald-500', textColor: 'text-emerald-500', width: 'w-full' };
+    }
+    return { reqMinLength: minLen, reqCase: isCase, reqNumber: num, reqSpecial: spec, strength: info };
+  }, [password]);
 
   // Prefetch onboarding & dashboard routes for instant navigation after registration
   useEffect(() => {

@@ -168,11 +168,14 @@ export default function AICoachPage() {
     const code = err?.code || err?.response?.data?.code || '';
     const msg = err?.message || err?.response?.data?.message || '';
 
+    if (code === 'UNAUTHENTICATED' || code === 'CLERK_AUTH_FAILED' || code === 'INVALID_TOKEN' || msg.includes('Authentication token') || msg.includes('Please sign in')) {
+      return 'Authentication required. Please sign in to chat with FORGE AI.';
+    }
     if (code === 'GEMINI_NOT_CONFIGURED' || msg.includes('not configured')) {
       return 'FORGE AI is not configured yet. Add GEMINI_API_KEY to the server environment to enable AI.';
     }
-    if (code === 'GEMINI_AUTH_FAILED' || msg.includes('authentication') || msg.includes('invalid')) {
-      return 'FORGE AI configuration is invalid. Please check the server API key.';
+    if (code === 'GEMINI_AUTH_FAILED' || msg.includes('GEMINI_API_KEY') || msg.includes('AIzaSy')) {
+      return 'FORGE AI server configuration is invalid. Please check the server GEMINI_API_KEY.';
     }
     if (code === 'GEMINI_PERMISSION_ERROR' || msg.includes('permission')) {
       return 'FORGE AI does not have permission to use the configured model.';
@@ -189,7 +192,7 @@ export default function AICoachPage() {
     if (code === 'GEMINI_UNAVAILABLE' || msg.includes('unavailable')) {
       return 'FORGE AI is temporarily unavailable. Please retry.';
     }
-    return "FORGE AI couldn't complete that request. Please try again.";
+    return msg || "FORGE AI couldn't complete that request. Please try again.";
   };
 
   const handleSend = async (textToSend?: string) => {

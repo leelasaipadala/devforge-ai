@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FolderGit2, Plus, ExternalLink, Sparkles, CheckCircle2, Clock, Trash2, X, Filter, Code, Eye, ShieldAlert, Cpu } from 'lucide-react';
 import { Github } from '@/components/Icons';
 import { Sidebar } from '@/components/Sidebar';
@@ -103,10 +103,12 @@ export default function ProjectsPage() {
     setModalOpen(true);
   };
 
-  // Filtered projects
-  const filteredProjects = selectedStatus === 'All'
-    ? projects
-    : projects.filter((p) => p.status === selectedStatus);
+  // Filtered projects (memoized)
+  const filteredProjects = useMemo(() => {
+    return selectedStatus === 'All'
+      ? projects
+      : projects.filter((p) => p.status === selectedStatus);
+  }, [projects, selectedStatus]);
 
   // Statistics
   const totalCount = projects.length;

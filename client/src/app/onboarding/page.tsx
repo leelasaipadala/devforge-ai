@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Check, ChevronLeft, Search, GraduationCap, Building2, Layers, BookOpen, User } from 'lucide-react';
@@ -208,6 +208,16 @@ export default function OnboardingPage() {
   const [targetCompanies, setTargetCompanies] = useState<string[]>(['Google', 'Linear', 'Vercel', 'Stripe']);
   const [companyInput, setCompanyInput] = useState('');
 
+  // Memoized search filtering for instant response without typing lag
+  const filteredRoleCategories = useMemo(() => {
+    if (!roleSearch.trim()) return ROLE_CATEGORIES;
+    const query = roleSearch.toLowerCase();
+    return ROLE_CATEGORIES.map((cat) => ({
+      ...cat,
+      roles: cat.roles.filter((r) => r.toLowerCase().includes(query)),
+    })).filter((cat) => cat.roles.length > 0);
+  }, [roleSearch]);
+
   const toggleLanguage = (lang: string) => {
     setSelectedLanguages((prev) =>
       prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
@@ -326,31 +336,27 @@ export default function OnboardingPage() {
               </div>
 
               <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
-                {ROLE_CATEGORIES.map((cat) => {
-                  const filteredRoles = cat.roles.filter((r) => r.toLowerCase().includes(roleSearch.toLowerCase()));
-                  if (filteredRoles.length === 0) return null;
-                  return (
-                    <div key={cat.category} className="space-y-2">
-                      <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{cat.category}</div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {filteredRoles.map((r) => (
-                          <button
-                            key={r}
-                            type="button"
-                            onClick={() => setTargetRole(r)}
-                            className={`p-2.5 rounded-xl text-xs font-medium text-left border transition-all ${
-                              targetRole === r
-                                ? 'bg-blue-600/20 text-blue-400 border-blue-500 font-semibold shadow-md shadow-blue-600/10'
-                                : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-700'
-                            }`}
-                          >
-                            {r}
-                          </button>
-                        ))}
-                      </div>
+                {filteredRoleCategories.map((cat) => (
+                  <div key={cat.category} className="space-y-2">
+                    <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{cat.category}</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {cat.roles.map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setTargetRole(r)}
+                          className={`p-2.5 rounded-xl text-xs font-medium text-left border transition-colors duration-150 ${
+                            targetRole === r
+                              ? 'bg-blue-600/20 text-blue-400 border-blue-500 font-semibold shadow-md shadow-blue-600/10'
+                              : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Briefcase,
@@ -173,19 +173,21 @@ export default function JobsPage() {
     setModalOpen(true);
   };
 
-  // Filtered & Sorted Jobs
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (job.location && job.location.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Filtered & Sorted Jobs (memoized for zero input lag)
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((job) => {
+      const matchesSearch =
+        job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (job.location && job.location.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesStatus = statusFilter === 'All' || job.status === statusFilter;
-    const matchesType = jobTypeFilter === 'All' || job.jobType === jobTypeFilter;
-    const matchesMode = workModeFilter === 'All' || job.workMode === workModeFilter;
+      const matchesStatus = statusFilter === 'All' || job.status === statusFilter;
+      const matchesType = jobTypeFilter === 'All' || job.jobType === jobTypeFilter;
+      const matchesMode = workModeFilter === 'All' || job.workMode === workModeFilter;
 
-    return matchesSearch && matchesStatus && matchesType && matchesMode;
-  });
+      return matchesSearch && matchesStatus && matchesType && matchesMode;
+    });
+  }, [jobs, searchQuery, statusFilter, jobTypeFilter, workModeFilter]);
 
   // Calculate Real Statistics
   const totalApps = jobs.length;
