@@ -2,37 +2,42 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #09090b;
-    --card: #ffffff;
-    --card-foreground: #09090b;
-    --secondary: #f1f5f9;
-    --accent: #e2e8f0;
-    --border: #e2e8f0;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --primary: #2563eb;
-    --accent-purple: #8b5cf6;
-    --success: #22c55e;
-    --warning: #f59e0b;
-    --danger: #ef4444;
+    --background: #F7F4EE; /* Warm Ivory */
+    --foreground: #171717; /* Deep Charcoal */
+    --card: #FBF9F5; /* Soft Cream */
+    --card-foreground: #171717;
+    --secondary: #FBF9F5;
+    --accent: #F28C82; /* Soft Coral / Peach */
+    --border: #E7E2D9;
+    --muted: #E7E2D9;
+    --muted-foreground: #6F6A63; /* Warm Gray */
+    --primary: #F28C82;
+    --secondary-accent: #A78BFA; /* Lavender */
+    --ai: #8B7CF6; /* Soft Violet */
+    --success: #6FCF97; /* Muted Mint */
+    --warning: #E9B949; /* Warm Amber */
+    --danger: #E57373; /* Soft Red */
+    --radius: 1rem;
+    --shadow: 0 4px 20px -2px rgba(23, 23, 23, 0.05);
   }
 
   .dark {
-    --background: #09090b;
-    --foreground: #f4f4f5;
-    --card: #18181b;
-    --card-foreground: #f4f4f5;
-    --secondary: #27272a;
-    --accent: #3f3f46;
-    --border: #27272a;
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-    --primary: #2563eb;
-    --accent-purple: #8b5cf6;
-    --success: #22c55e;
-    --warning: #f59e0b;
-    --danger: #ef4444;
+    --background: #171615;
+    --foreground: #EAE5DE;
+    --card: #211F1C;
+    --card-foreground: #EAE5DE;
+    --secondary: #292621;
+    --accent: #292621;
+    --border: #292621;
+    --muted: #292621;
+    --muted-foreground: #A19D94; /* Warm Gray for Dark Mode */
+    --primary: #F28C82;
+    --secondary-accent: #A78BFA;
+    --ai: #8B7CF6;
+    --success: #6FCF97;
+    --warning: #E9B949;
+    --danger: #E57373;
+    --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -47,6 +52,15 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-primary: var(--primary);
+  --color-ai: var(--ai);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --radius-xl: var(--radius);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -55,13 +69,13 @@ body {
 }
 
 html.light body {
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 html.dark body {
-  background-color: #09090b;
-  color: #f4f4f5;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 /* Glassmorphic Utilities */

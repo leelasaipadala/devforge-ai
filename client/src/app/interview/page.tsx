@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { HelpCircle, Send, CheckCircle2, AlertTriangle, Sparkles, Trophy, Award, Clock, PlayCircle, RotateCcw, Target, BookOpen, Layers } from 'lucide-react';
+import {useState, useEffect, useCallback} from 'react';
+import { HelpCircle, Send, CheckCircle2, Sparkles, Trophy, Award, Clock, PlayCircle, RotateCcw, Target, BookOpen, Layers, Code, GitMerge, FileText } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ApiClient } from '@/lib/api';
+import { AuroraCard } from '@/components/AuroraCard';
+import { AuroraButton } from '@/components/AuroraButton';
+import { AuroraBadge } from '@/components/AuroraBadge';
 
 const TECHNOLOGIES = [
   { name: 'Java', categories: ['All', 'Core Java', 'OOP', 'Collections', 'Multithreading', 'Memory Management', 'Exception Handling', 'JVM', 'Streams'] },
@@ -69,6 +72,8 @@ export default function InterviewPage() {
       setTimerActive(false);
       handleEvaluate();
     }
+  const handleMobileMenuClick = useCallback(() => setMobileOpen(true), []);
+
     return () => clearInterval(interval);
   }, [timerActive, timeLeftSeconds]);
 
@@ -180,35 +185,34 @@ export default function InterviewPage() {
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        <Header onMobileMenuClick={() => setMobileOpen(true)} />
+        <Header onMobileMenuClick={handleMobileMenuClick} />
 
-        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-8">
           {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-4">
             <div>
-              <div className="flex items-center gap-2.5 mb-1">
-                <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                  <Trophy className="w-5 h-5" />
-                </div>
-                <h1 className="text-xl font-bold tracking-tight text-foreground">Interview Intelligence Engine</h1>
+              <div className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-primary uppercase mb-2">
+                <Trophy className="w-4 h-4" />
+                <span>Interview Intelligence</span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">Mock Interviewer</h1>
+              <p className="text-sm text-muted-foreground mt-2 font-medium max-w-xl">
                 Technology-curated question bank with anti-repetition tracking and automated AI evaluation.
               </p>
             </div>
 
             {/* Mode Selector Tabs */}
-            <div className="flex items-center gap-1.5 bg-card p-1 rounded-xl border border-border shrink-0 text-xs">
+            <div className="flex items-center gap-1.5 bg-secondary/30 p-1.5 rounded-2xl border border-border/60 shrink-0 text-[12px]">
               <button
                 onClick={() => {
                   setActiveTab('Practice');
                   setTimerActive(false);
                 }}
-                className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                  activeTab === 'Practice' ? 'bg-blue-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                  activeTab === 'Practice' ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
                 }`}
               >
-                Practice Mode
+                Practice
               </button>
               <button
                 onClick={() => {
@@ -218,190 +222,191 @@ export default function InterviewPage() {
                     setTimerActive(true);
                   }
                 }}
-                className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-                  activeTab === 'Timed' ? 'bg-amber-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                className={`px-4 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
+                  activeTab === 'Timed' ? 'bg-warning text-white shadow-md shadow-warning/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
                 }`}
               >
-                <Clock className="w-3.5 h-3.5" />
-                Timed Mode
+                <Clock className="w-4 h-4" />
+                Timed
               </button>
               <button
                 onClick={() => {
                   setActiveTab('MockInterview');
                   setTimerActive(false);
                 }}
-                className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                  activeTab === 'MockInterview' ? 'bg-purple-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                  activeTab === 'MockInterview' ? 'bg-ai text-white shadow-md shadow-ai/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
                 }`}
               >
-                Mock Interview
+                Interview
               </button>
             </div>
-          </div>
+          </header>
 
           {/* Interactive Filters (Technology, Category, Difficulty) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-card p-4 rounded-2xl border border-border shadow-sm">
-            <div>
-              <label className="block text-[11px] font-semibold uppercase text-muted-foreground tracking-wider mb-1.5">
-                Technology
-              </label>
-              <select
-                value={technology}
-                onChange={(e) => {
-                  setTechnology(e.target.value);
-                  setCategory('All');
-                }}
-                className="w-full px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground focus:outline-none focus:border-blue-500 font-medium"
-              >
-                {TECHNOLOGIES.map((t) => (
-                  <option key={t.name} value={t.name}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <AuroraCard className="p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-muted-foreground tracking-widest mb-2">
+                  <Code className="w-3.5 h-3.5 inline mr-1.5 mb-0.5" /> Technology
+                </label>
+                <select
+                  value={technology}
+                  onChange={(e) => {
+                    setTechnology(e.target.value);
+                    setCategory('All');
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl bg-background border border-border/80 text-[13px] font-bold text-foreground focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all shadow-sm"
+                >
+                  {TECHNOLOGIES.map((t) => (
+                    <option key={t.name} value={t.name}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold uppercase text-muted-foreground tracking-wider mb-1.5">
-                Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground focus:outline-none focus:border-blue-500 font-medium"
-              >
-                {currentTechObj.categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-muted-foreground tracking-widest mb-2">
+                  <Layers className="w-3.5 h-3.5 inline mr-1.5 mb-0.5" /> Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-background border border-border/80 text-[13px] font-bold text-foreground focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all shadow-sm"
+                >
+                  {currentTechObj.categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold uppercase text-muted-foreground tracking-wider mb-1.5">
-                Difficulty
-              </label>
-              <div className="grid grid-cols-3 gap-1.5 p-1 bg-background rounded-xl border border-border text-xs">
-                {(['Easy', 'Medium', 'Hard'] as const).map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDifficulty(d)}
-                    className={`py-1 rounded-lg font-semibold transition-all text-center ${
-                      difficulty === d
-                        ? d === 'Easy'
-                          ? 'bg-emerald-600 text-white'
-                          : d === 'Medium'
-                          ? 'bg-amber-600 text-white'
-                          : 'bg-red-600 text-white'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-muted-foreground tracking-widest mb-2">
+                  <Target className="w-3.5 h-3.5 inline mr-1.5 mb-0.5" /> Difficulty
+                </label>
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-background rounded-xl border border-border/80 text-[12px] shadow-sm">
+                  {(['Easy', 'Medium', 'Hard'] as const).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDifficulty(d)}
+                      className={`py-1.5 rounded-lg font-bold transition-all text-center ${
+                        difficulty === d
+                          ? d === 'Easy'
+                            ? 'bg-success text-white shadow-sm'
+                            : d === 'Medium'
+                            ? 'bg-warning text-white shadow-sm'
+                            : 'bg-danger text-white shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </AuroraCard>
 
           {/* Pool Exhausted Banner */}
           {poolExhausted && (
-            <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5 text-purple-400 font-medium">
-                <Target className="w-5 h-5 shrink-0" />
-                <span>🎯 You&apos;ve completed all unseen curated questions for <strong>{technology}</strong> ({difficulty}).</span>
+            <AuroraCard className="p-4 bg-ai/5 border-ai/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-[13px] font-medium text-foreground">
+                <Target className="w-5 h-5 text-ai shrink-0" />
+                <span>You&apos;ve completed all unseen curated questions for <strong>{technology}</strong> ({difficulty}).</span>
               </div>
-              <button
+              <AuroraButton
                 onClick={() => loadQuestions(true)}
-                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all shadow-md shrink-0 flex items-center gap-1.5"
+                variant="ai"
+                className="gap-2 shrink-0 h-9 px-4 text-[12px]"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                Practice Again
-              </button>
-            </div>
+                <span>Practice Again</span>
+              </AuroraButton>
+            </AuroraCard>
           )}
 
           {/* Main Practice / Timed Content */}
           {activeTab !== 'MockInterview' ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Question Sidebar List */}
-              <div className="space-y-3">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-blue-400" />
-                  {technology} Question Pool ({questions.length})
+              <div className="lg:col-span-4 space-y-4">
+                <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                  {technology} Pool ({questions.length})
                 </h2>
 
                 {loading ? (
-                  <div className="p-6 rounded-2xl bg-card border border-border text-center text-xs text-muted-foreground">
+                  <AuroraCard className="p-8 text-center text-[13px] font-medium text-muted-foreground border-dashed">
                     Loading questions...
-                  </div>
+                  </AuroraCard>
                 ) : questions.length === 0 ? (
-                  <div className="p-6 rounded-2xl bg-card border border-border text-center text-xs text-muted-foreground space-y-2">
-                    <p>No questions remaining in pool.</p>
+                  <AuroraCard className="p-8 text-center space-y-3 border-dashed">
+                    <p className="text-[13px] font-medium text-foreground">No questions remaining in pool.</p>
                     <button
                       onClick={() => loadQuestions(true)}
-                      className="text-xs text-blue-400 font-semibold underline"
+                      className="text-[12px] text-primary font-bold hover:underline"
                     >
                       Enable repetition
                     </button>
-                  </div>
+                  </AuroraCard>
                 ) : (
-                  <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                    {questions.map((q, idx) => (
-                      <button
-                        key={q.id || idx}
-                        onClick={() => {
-                          setSelectedQuestion(q);
-                          setEvaluation(null);
-                          setUserAnswer('');
-                          setShowExplanation(false);
-                          if (activeTab === 'Timed') {
-                            setTimeLeftSeconds((q.expectedTimeMinutes || 5) * 60);
-                            setTimerActive(true);
-                          }
-                        }}
-                        className={`w-full text-left p-3.5 rounded-xl border text-xs transition-all space-y-1.5 ${
-                          selectedQuestion?.id === q.id
-                            ? 'bg-blue-600/10 border-blue-500/50 text-foreground font-medium shadow-sm'
-                            : 'bg-card border-border hover:border-border/80 text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="font-semibold text-blue-400 uppercase">{q.category || q.technology}</span>
-                          <span
-                            className={`px-1.5 py-0.5 rounded font-bold uppercase text-[9px] ${
-                              q.difficulty === 'Easy'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : q.difficulty === 'Medium'
-                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                            }`}
-                          >
-                            {q.difficulty}
-                          </span>
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                    {questions.map((q, idx) => {
+                      const isSelected = selectedQuestion?.id === q.id;
+                      return (
+                        <div
+                          key={q.id || idx}
+                          onClick={() => {
+                            setSelectedQuestion(q);
+                            setEvaluation(null);
+                            setUserAnswer('');
+                            setShowExplanation(false);
+                            if (activeTab === 'Timed') {
+                              setTimeLeftSeconds((q.expectedTimeMinutes || 5) * 60);
+                              setTimerActive(true);
+                            }
+                          }}
+                          className={`w-full text-left p-4 rounded-2xl border cursor-pointer transition-all space-y-2.5 group ${
+                            isSelected
+                              ? 'bg-primary/5 border-primary ring-1 ring-primary/20 shadow-md'
+                              : 'bg-card border-border/60 hover:border-primary/40'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`font-bold text-[10px] uppercase tracking-wider ${isSelected ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`}>{q.category || q.technology}</span>
+                            <AuroraBadge 
+                              variant={q.difficulty === 'Easy' ? 'success' : q.difficulty === 'Medium' ? 'warning' : 'danger'}
+                              className="text-[9px] px-1.5 py-0"
+                            >
+                              {q.difficulty}
+                            </AuroraBadge>
+                          </div>
+                          <p className={`line-clamp-2 leading-relaxed text-[13px] font-medium ${isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>{q.question}</p>
                         </div>
-                        <p className="line-clamp-2 leading-relaxed text-foreground font-sans">{q.question}</p>
-                      </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
               {/* Main Question Display & Answer Box */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-8 space-y-6">
                 {selectedQuestion ? (
-                  <div className="bg-card rounded-2xl border border-border p-6 space-y-6 shadow-sm">
+                  <AuroraCard className="space-y-6 relative overflow-hidden group/card">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                    
                     {/* Active Question Bar */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-xs">
-                          {selectedQuestion.technology}
-                        </span>
-                        <span className="text-xs text-muted-foreground font-medium">• {selectedQuestion.category}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5 relative z-10">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <AuroraBadge variant="primary" className="text-[11px] px-3">{selectedQuestion.technology}</AuroraBadge>
+                        <span className="text-[12px] text-muted-foreground font-bold tracking-wide uppercase">{selectedQuestion.category}</span>
                       </div>
 
                       {activeTab === 'Timed' && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono font-bold text-sm shadow-inner">
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-warning/10 border border-warning/30 text-warning font-mono font-bold text-[14px] shadow-sm shrink-0">
                           <Clock className="w-4 h-4 animate-pulse" />
                           <span>{formatTime(timeLeftSeconds)}</span>
                         </div>
@@ -409,12 +414,12 @@ export default function InterviewPage() {
                     </div>
 
                     {/* Question Text */}
-                    <div className="space-y-2">
-                      <h3 className="text-base font-bold text-foreground leading-snug">{selectedQuestion.question}</h3>
+                    <div className="space-y-4 relative z-10">
+                      <h3 className="text-xl font-bold text-foreground leading-relaxed">{selectedQuestion.question}</h3>
                       {selectedQuestion.keyConcepts && selectedQuestion.keyConcepts.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
+                        <div className="flex flex-wrap gap-2 pt-2">
                           {selectedQuestion.keyConcepts.map((k: string, i: number) => (
-                            <span key={i} className="px-2 py-0.5 rounded bg-secondary text-muted-foreground text-[10px] font-mono">
+                            <span key={i} className="px-2.5 py-1 rounded-lg bg-secondary/80 text-muted-foreground text-[11px] font-mono font-medium border border-border/50">
                               #{k}
                             </span>
                           ))}
@@ -423,194 +428,237 @@ export default function InterviewPage() {
                     </div>
 
                     {/* Answer Input */}
-                    <div className="space-y-2">
-                      <label className="block text-xs font-semibold text-muted-foreground">Your Technical Answer</label>
+                    <div className="space-y-3 relative z-10">
+                      <label className="block text-[12px] font-bold uppercase tracking-widest text-foreground">Your Technical Answer</label>
                       <textarea
-                        rows={6}
+                        rows={8}
                         value={userAnswer}
                         onChange={(e) => setUserAnswer(e.target.value)}
                         placeholder="Write your detailed explanation here..."
-                        className="w-full p-4 rounded-xl bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-blue-500 transition-colors font-mono leading-relaxed"
+                        className="w-full p-5 rounded-2xl bg-background border border-border text-[14px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all font-mono leading-relaxed resize-none shadow-inner"
                       />
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                      <button
+                    <div className="flex flex-wrap items-center justify-between gap-4 pt-4 relative z-10">
+                      <AuroraButton
                         onClick={() => setShowExplanation(!showExplanation)}
-                        className="px-3 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground text-xs font-medium transition-colors border border-border flex items-center gap-1.5"
+                        variant="secondary"
+                        className="gap-2 text-[12px]"
                       >
-                        <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
-                        {showExplanation ? 'Hide Explanation' : 'View Key Concepts'}
-                      </button>
+                        <HelpCircle className="w-4 h-4 text-primary" />
+                        <span>{showExplanation ? 'Hide Explanation' : 'View Key Concepts'}</span>
+                      </AuroraButton>
 
-                      <button
+                      <AuroraButton
                         onClick={handleEvaluate}
                         disabled={!userAnswer.trim() || evaluating}
-                        className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 disabled:opacity-40 flex items-center gap-2"
+                        variant="primary"
+                        className="gap-2"
                       >
                         {evaluating ? (
                           <>
                             <Sparkles className="w-4 h-4 animate-spin" />
-                            Evaluating...
+                            <span>Evaluating...</span>
                           </>
                         ) : (
                           <>
-                            <Send className="w-3.5 h-3.5" />
-                            Submit Answer
+                            <Send className="w-4 h-4" />
+                            <span>Submit Answer</span>
                           </>
                         )}
-                      </button>
+                      </AuroraButton>
                     </div>
 
                     {/* Explanation Box */}
                     {showExplanation && selectedQuestion.explanation && (
-                      <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 text-xs space-y-1.5 leading-relaxed">
-                        <div className="font-bold text-blue-400 flex items-center gap-1.5">
+                      <div className="p-5 rounded-2xl bg-primary/5 border border-primary/20 text-[13px] space-y-3 leading-relaxed relative z-10 mt-4">
+                        <div className="font-bold text-primary flex items-center gap-2 uppercase tracking-widest text-[11px]">
                           <Layers className="w-4 h-4" /> Model Explanation & Key Points
                         </div>
-                        <p className="text-foreground">{selectedQuestion.explanation}</p>
+                        <p className="text-foreground font-medium">{selectedQuestion.explanation}</p>
                       </div>
                     )}
 
                     {/* Evaluation Result */}
                     {evaluation && (
-                      <div className="p-5 rounded-2xl bg-card border border-border space-y-4 shadow-sm mt-4">
-                        <div className="flex items-center justify-between border-b border-border pb-3">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                            <span className="text-sm font-bold text-foreground">AI Evaluation Result</span>
+                      <AuroraCard className="space-y-5 border-success/30 bg-success/5 relative z-10 mt-6">
+                        <div className="flex items-center justify-between border-b border-success/10 pb-4">
+                          <div className="flex items-center gap-2.5">
+                            <CheckCircle2 className="w-5 h-5 text-success" />
+                            <span className="text-[14px] font-bold text-foreground uppercase tracking-wider">AI Evaluation Result</span>
                           </div>
-                          <div className="text-base font-bold font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">
-                            {evaluation.score} / 100
+                          <div className="text-2xl font-bold font-mono text-success tracking-tighter">
+                            {evaluation.score} <span className="text-lg text-muted-foreground font-medium font-sans">/100</span>
                           </div>
                         </div>
 
-                        <p className="text-xs text-foreground leading-relaxed">{evaluation.feedback}</p>
+                        <p className="text-[14px] text-foreground font-medium leading-relaxed">{evaluation.feedback}</p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-3">
                           {evaluation.strengths && evaluation.strengths.length > 0 && (
-                            <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1 text-xs">
-                              <span className="font-bold text-emerald-400">Key Strengths</span>
-                              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-[11px]">
+                            <div className="space-y-3">
+                              <span className="font-bold text-success uppercase text-[11px] tracking-widest flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-success"></div>
+                                Key Strengths
+                              </span>
+                              <ul className="space-y-2 text-foreground text-[13px] font-medium">
                                 {evaluation.strengths.map((s: string, i: number) => (
-                                  <li key={i}>{s}</li>
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className="text-success mt-1">•</span>
+                                    <span>{s}</span>
+                                  </li>
                                 ))}
                               </ul>
                             </div>
                           )}
 
                           {evaluation.improvements && evaluation.improvements.length > 0 && (
-                            <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-1 text-xs">
-                              <span className="font-bold text-amber-400">Areas for Improvement</span>
-                              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground text-[11px]">
+                            <div className="space-y-3">
+                              <span className="font-bold text-warning uppercase text-[11px] tracking-widest flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-warning"></div>
+                                Areas for Improvement
+                              </span>
+                              <ul className="space-y-2 text-foreground text-[13px] font-medium">
                                 {evaluation.improvements.map((imp: string, i: number) => (
-                                  <li key={i}>{imp}</li>
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className="text-warning mt-1">•</span>
+                                    <span>{imp}</span>
+                                  </li>
                                 ))}
                               </ul>
                             </div>
                           )}
                         </div>
-                      </div>
+                      </AuroraCard>
                     )}
-                  </div>
+                  </AuroraCard>
                 ) : (
-                  <div className="p-12 rounded-2xl bg-card border border-border text-center text-xs text-muted-foreground space-y-3">
-                    <p>Select a technology and question from the list to begin practicing.</p>
-                  </div>
+                  <AuroraCard className="p-16 flex flex-col items-center justify-center text-center space-y-4 border-dashed border-2 h-[500px]">
+                    <div className="w-16 h-16 rounded-3xl bg-secondary border border-border flex items-center justify-center text-muted-foreground mb-2">
+                      <FileText className="w-8 h-8" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground">No Question Selected</h3>
+                    <p className="text-[14px] text-muted-foreground font-medium max-w-sm">
+                      Select a technology and question from the list on the left to begin practicing.
+                    </p>
+                  </AuroraCard>
                 )}
               </div>
             </div>
           ) : (
             /* Mock Interview Mode */
-            <div className="bg-card rounded-2xl border border-border p-6 space-y-6 shadow-sm">
+            <AuroraCard className="space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-ai/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+              
               {!mockStarted ? (
-                <div className="text-center py-12 space-y-4 max-w-md mx-auto">
-                  <div className="w-16 h-16 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mx-auto text-purple-400">
-                    <PlayCircle className="w-8 h-8" />
+                <div className="text-center py-16 space-y-6 max-w-lg mx-auto relative z-10">
+                  <div className="w-24 h-24 rounded-[2rem] bg-ai/10 border border-ai/20 flex items-center justify-center mx-auto text-ai shadow-inner">
+                    <PlayCircle className="w-10 h-10" />
                   </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-foreground">Role & Tech Specific Mock Interview</h2>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Complete a 5-question sequential technical interview session for <strong>{technology}</strong> ({difficulty}).
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-foreground">Mock Technical Interview</h2>
+                    <p className="text-[14px] text-muted-foreground leading-relaxed font-medium">
+                      Complete a 5-question sequential technical interview session for <strong className="text-foreground">{technology}</strong> ({difficulty}).
                     </p>
                   </div>
-                  <button
+                  <AuroraButton
                     onClick={startMockInterview}
-                    className="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-lg shadow-purple-500/20"
+                    variant="ai"
+                    className="px-8 py-4 text-[14px] shadow-lg shadow-ai/20 mx-auto"
                   >
                     Start Mock Interview
-                  </button>
+                  </AuroraButton>
                 </div>
               ) : mockFinished ? (
-                <div className="space-y-6">
-                  <div className="text-center py-6 border-b border-border space-y-2">
-                    <Award className="w-12 h-12 text-emerald-400 mx-auto" />
-                    <h2 className="text-xl font-bold text-foreground">Mock Interview Completed!</h2>
-                    <p className="text-xs text-muted-foreground">Here is your technical performance breakdown.</p>
+                <div className="space-y-8 relative z-10">
+                  <div className="text-center py-8 border-b border-border/50 space-y-4">
+                    <div className="w-20 h-20 rounded-full bg-success/10 border border-success/20 flex items-center justify-center mx-auto">
+                      <Award className="w-10 h-10 text-success" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-extrabold text-foreground tracking-tight">Interview Completed!</h2>
+                      <p className="text-[14px] text-muted-foreground font-medium mt-2">Here is your technical performance breakdown.</p>
+                    </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {questions.slice(0, 5).map((q, idx) => (
-                      <div key={idx} className="p-4 rounded-xl bg-background border border-border space-y-2 text-xs">
+                      <div key={idx} className="p-5 rounded-2xl bg-secondary/30 border border-border/60 space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-blue-400">Question {idx + 1}</span>
-                          <span className="font-mono font-bold text-emerald-400">
+                          <span className="font-bold text-[11px] uppercase tracking-widest text-ai">Question {idx + 1}</span>
+                          <AuroraBadge variant="success" className="font-mono text-[11px] px-2">
                             {mockScores[idx]?.score || 0} / 100
-                          </span>
+                          </AuroraBadge>
                         </div>
-                        <p className="font-semibold text-foreground">{q.question}</p>
-                        <p className="text-muted-foreground text-[11px] leading-relaxed">{mockScores[idx]?.feedback || 'Evaluated.'}</p>
+                        <p className="font-bold text-[14px] text-foreground leading-relaxed">{q.question}</p>
+                        <p className="text-muted-foreground text-[13px] font-medium leading-relaxed pt-2 border-t border-border/40">
+                          {mockScores[idx]?.feedback || 'Evaluated.'}
+                        </p>
                       </div>
                     ))}
                   </div>
 
-                  <div className="text-center pt-4">
-                    <button
+                  <div className="text-center pt-6">
+                    <AuroraButton
                       onClick={() => setMockStarted(false)}
-                      className="px-5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs border border-border"
+                      variant="secondary"
+                      className="mx-auto"
                     >
                       Back to Interview Hub
-                    </button>
+                    </AuroraButton>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between border-b border-border pb-4 text-xs font-semibold">
-                    <span className="text-muted-foreground">
+                <div className="space-y-8 relative z-10">
+                  <div className="flex items-center justify-between border-b border-border/50 pb-5">
+                    <span className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground">
                       Question {mockQuestionIdx + 1} of {Math.min(questions.length, 5)}
                     </span>
-                    <span className="text-purple-400 font-bold uppercase">{technology} • {difficulty}</span>
+                    <AuroraBadge variant="ai" className="px-3">
+                      {technology} • {difficulty}
+                    </AuroraBadge>
                   </div>
 
                   {questions[mockQuestionIdx] && (
-                    <div className="space-y-4">
-                      <h3 className="text-base font-bold text-foreground">{questions[mockQuestionIdx].question}</h3>
+                    <div className="space-y-6">
+                      <h3 className="text-xl font-bold text-foreground leading-relaxed">{questions[mockQuestionIdx].question}</h3>
 
-                      <textarea
-                        rows={6}
-                        value={mockAnswers[mockQuestionIdx] || ''}
-                        onChange={(e) =>
-                          setMockAnswers((prev) => ({ ...prev, [mockQuestionIdx]: e.target.value }))
-                        }
-                        placeholder="Write your answer..."
-                        className="w-full p-4 rounded-xl bg-background border border-border text-xs text-foreground focus:outline-none focus:border-purple-500 font-mono"
-                      />
+                      <div className="space-y-3">
+                        <label className="block text-[12px] font-bold uppercase tracking-widest text-foreground">Your Technical Answer</label>
+                        <textarea
+                          rows={8}
+                          value={mockAnswers[mockQuestionIdx] || ''}
+                          onChange={(e) =>
+                            setMockAnswers((prev) => ({ ...prev, [mockQuestionIdx]: e.target.value }))
+                          }
+                          placeholder="Write your answer..."
+                          className="w-full p-5 rounded-2xl bg-background border border-border text-[14px] text-foreground focus:outline-none focus:border-ai/50 focus:ring-4 focus:ring-ai/5 font-mono leading-relaxed resize-none shadow-inner transition-all"
+                        />
+                      </div>
 
                       <div className="flex justify-end pt-2">
-                        <button
+                        <AuroraButton
                           onClick={handleMockNext}
                           disabled={!mockAnswers[mockQuestionIdx]?.trim() || evaluating}
-                          className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs disabled:opacity-40"
+                          variant="ai"
+                          className="px-6 gap-2"
                         >
-                          {evaluating ? 'Evaluating...' : mockQuestionIdx + 1 === Math.min(questions.length, 5) ? 'Finish Mock' : 'Next Question'}
-                        </button>
+                          {evaluating ? (
+                            <>
+                              <Sparkles className="w-4 h-4 animate-spin" />
+                              <span>Evaluating...</span>
+                            </>
+                          ) : (
+                            <span>{mockQuestionIdx + 1 === Math.min(questions.length, 5) ? 'Finish Mock Interview' : 'Next Question'}</span>
+                          )}
+                        </AuroraButton>
                       </div>
                     </div>
                   )}
                 </div>
               )}
-            </div>
+            </AuroraCard>
           )}
         </main>
       </div>

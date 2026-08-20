@@ -6,6 +6,9 @@ import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Check, ChevronLeft, Search, GraduationCap, Building2, Layers, BookOpen, User } from 'lucide-react';
 import { ApiClient } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { AuroraButton } from '@/components/AuroraButton';
+import { AuroraBadge } from '@/components/AuroraBadge';
+import { AuroraCard } from '@/components/AuroraCard';
 
 const ROLE_CATEGORIES = [
   {
@@ -180,8 +183,10 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  const { refreshProfile, user } = useAuth();
+  
   // Form State
-  const [name, setName] = useState('DevForge Developer');
+  const [name, setName] = useState(user?.name || 'DevForge Developer');
   const [targetRole, setTargetRole] = useState('Full Stack Developer');
   const [roleSearch, setRoleSearch] = useState('');
   const [experienceLevel, setExperienceLevel] = useState('Undergraduate Student');
@@ -241,8 +246,6 @@ export default function OnboardingPage() {
     setTargetCompanies(targetCompanies.filter((c) => c !== company));
   };
 
-  const { refreshProfile } = useAuth();
-
   const handleSubmit = async () => {
     setLoading(true);
     try {
@@ -278,77 +281,78 @@ export default function OnboardingPage() {
     }
   };
 
+  const baseInputClass = "w-full px-4 py-3 rounded-xl bg-card border border-border text-sm text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/60";
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between p-4 sm:p-6 lg:p-12 transition-colors duration-200">
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between p-4 sm:p-6 lg:p-12 transition-colors duration-200 selection:bg-primary/20 selection:text-primary">
       {/* Header */}
-      <div className="max-w-4xl mx-auto w-full flex items-center justify-between pb-4 border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">
-            <Sparkles className="w-5 h-5 fill-white" />
+      <div className="max-w-4xl mx-auto w-full flex items-center justify-between pb-6 border-b border-border/50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-bold text-primary-foreground shadow-lg shadow-primary/20">
+            <Sparkles className="w-5 h-5 fill-current" />
           </div>
           <div>
-            <span className="font-bold text-base text-white block">DevForge AI</span>
-            <span className="text-[10px] text-zinc-500 font-medium">Developer Career Setup</span>
+            <span className="font-extrabold text-lg text-foreground block tracking-tight">DevForge Studio</span>
+            <span className="text-xs text-muted-foreground font-semibold tracking-wide uppercase">Developer Setup</span>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-          <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            Step {step} of 4
-          </span>
-        </div>
+        <AuroraBadge variant="primary" className="font-semibold shadow-sm shadow-primary/10">
+          Step {step} of 4
+        </AuroraBadge>
       </div>
 
       {/* Main Form Body */}
-      <div className="max-w-3xl mx-auto w-full my-6">
+      <div className="max-w-3xl mx-auto w-full my-10">
         {/* STEP 1: Target Role & Experience Level */}
         {step === 1 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-1.5">Target Software Role & Experience</h1>
-              <p className="text-xs text-zinc-400">DevForge AI benchmarks your skill matrix against your chosen career role.</p>
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+            <div className="text-center sm:text-left mb-2">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3 tracking-tight">Target Software Role & Experience</h1>
+              <p className="text-sm text-muted-foreground font-medium">DevForge AI dynamically benchmarks your skill matrix against your chosen career path.</p>
             </div>
 
             {/* Name Input */}
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Your Full Name</label>
+            <AuroraCard padded className="space-y-2 border-border/50 shadow-sm">
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Your Full Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-blue-500"
+                className={baseInputClass}
+                placeholder="e.g. Alex Developer"
               />
-            </div>
+            </AuroraCard>
 
             {/* Target Role Selector */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-zinc-300">Target Software Role</label>
-                <div className="relative w-48 sm:w-64">
-                  <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
+            <AuroraCard padded className="space-y-4 border-border/50 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Target Software Role</label>
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
                   <input
                     type="text"
                     placeholder="Search roles..."
                     value={roleSearch}
                     onChange={(e) => setRoleSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-blue-500"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
                   />
                 </div>
               </div>
 
-              <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
+              <div className="space-y-5 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
                 {filteredRoleCategories.map((cat) => (
-                  <div key={cat.category} className="space-y-2">
-                    <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{cat.category}</div>
+                  <div key={cat.category} className="space-y-2.5">
+                    <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">{cat.category}</div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {cat.roles.map((r) => (
                         <button
                           key={r}
                           type="button"
                           onClick={() => setTargetRole(r)}
-                          className={`p-2.5 rounded-xl text-xs font-medium text-left border transition-colors duration-150 ${
+                          className={`px-3 py-2.5 rounded-xl text-[13px] font-semibold text-left border transition-all duration-200 ${
                             targetRole === r
-                              ? 'bg-blue-600/20 text-blue-400 border-blue-500 font-semibold shadow-md shadow-blue-600/10'
-                              : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                              ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20 scale-[1.02]'
+                              : 'bg-background text-foreground border-border hover:border-primary/50 hover:bg-card'
                           }`}
                         >
                           {r}
@@ -358,157 +362,159 @@ export default function OnboardingPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </AuroraCard>
 
             {/* Experience Level Selector */}
-            <div className="space-y-3">
-              <label className="block text-xs font-semibold text-zinc-300">Experience Level</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-1">
+            <AuroraCard padded className="space-y-4 border-border/50 shadow-sm">
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Experience Level</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
                 {EXPERIENCE_LEVELS.map((exp) => (
                   <button
                     key={exp.label}
                     type="button"
                     onClick={() => setExperienceLevel(exp.label)}
-                    className={`p-3 rounded-xl text-left border transition-all ${
+                    className={`p-4 rounded-2xl text-left border transition-all duration-200 ${
                       experienceLevel === exp.label
-                        ? 'bg-purple-600/20 text-purple-300 border-purple-500 font-semibold shadow-md'
-                        : 'bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                        ? 'bg-ai/10 text-ai-foreground border-ai shadow-md shadow-ai/10 scale-[1.01]'
+                        : 'bg-background text-foreground border-border hover:border-ai/50 hover:bg-card'
                     }`}
                   >
-                    <div className="text-xs font-bold text-white mb-0.5">{exp.label}</div>
-                    <div className="text-[11px] text-zinc-400 leading-tight">{exp.desc}</div>
+                    <div className={`text-sm font-bold mb-1 ${experienceLevel === exp.label ? 'text-ai' : 'text-foreground'}`}>{exp.label}</div>
+                    <div className="text-xs font-medium text-muted-foreground leading-relaxed">{exp.desc}</div>
                   </button>
                 ))}
               </div>
-            </div>
+            </AuroraCard>
           </motion.div>
         )}
 
         {/* STEP 2: Education Section */}
         {step === 2 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-1.5">Education Information</h1>
-              <p className="text-xs text-zinc-400">Provide your academic background so DevForge can contextualize resume scores.</p>
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+            <div className="text-center sm:text-left mb-2">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3 tracking-tight">Academic Background</h1>
+              <p className="text-sm text-muted-foreground font-medium">Provide your education history so DevForge can correctly contextualize your resume scores.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Education Level</label>
-                <select
-                  value={educationLevel}
-                  onChange={(e) => setEducationLevel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
-                >
-                  {['High School', 'Diploma', 'Undergraduate', 'Postgraduate', 'Master’s', 'M.Tech', 'MBA', 'PhD', 'Other'].map((lvl) => (
-                    <option key={lvl} value={lvl}>{lvl}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Degree / Program</label>
-                <select
-                  value={degreeProgram}
-                  onChange={(e) => setDegreeProgram(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
-                >
-                  {['B.Tech', 'B.E.', 'B.Sc', 'BCA', 'MCA', 'M.Tech', 'M.Sc', 'MBA', 'Other'].map((deg) => (
-                    <option key={deg} value={deg}>{deg}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Specialization / Major</label>
-                <select
-                  value={specialization}
-                  onChange={(e) => setSpecialization(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
-                >
-                  {['Computer Science', 'Information Technology', 'Artificial Intelligence', 'Data Science', 'Electronics', 'Electrical', 'Mechanical', 'Other'].map((sp) => (
-                    <option key={sp} value={sp}>{sp}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">College / University Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Stanford University / IIT Delhi"
-                  value={institution}
-                  onChange={(e) => setInstitution(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Current Education Status</label>
-                <select
-                  value={educationStatus}
-                  onChange={(e) => setEducationStatus(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
-                >
-                  <option value="Currently Studying">Currently Studying</option>
-                  <option value="Graduated">Graduated</option>
-                  <option value="Expected to Graduate">Expected to Graduate</option>
-                </select>
-              </div>
-
-              {educationStatus === 'Currently Studying' ? (
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Current Year</label>
+            <AuroraCard padded className="border-border/50 shadow-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Education Level</label>
                   <select
-                    value={currentYear}
-                    onChange={(e) => setCurrentYear(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
+                    value={educationLevel}
+                    onChange={(e) => setEducationLevel(e.target.value)}
+                    className={baseInputClass}
                   >
-                    {['1st Year', '2nd Year', '3rd Year', '4th Year', 'Final Year'].map((yr) => (
-                      <option key={yr} value={yr}>{yr}</option>
+                    {['High School', 'Diploma', 'Undergraduate', 'Postgraduate', 'Master’s', 'M.Tech', 'MBA', 'PhD', 'Other'].map((lvl) => (
+                      <option key={lvl} value={lvl}>{lvl}</option>
                     ))}
                   </select>
                 </div>
-              ) : (
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Graduation Year</label>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Degree / Program</label>
+                  <select
+                    value={degreeProgram}
+                    onChange={(e) => setDegreeProgram(e.target.value)}
+                    className={baseInputClass}
+                  >
+                    {['B.Tech', 'B.E.', 'B.Sc', 'BCA', 'MCA', 'M.Tech', 'M.Sc', 'MBA', 'Other'].map((deg) => (
+                      <option key={deg} value={deg}>{deg}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Specialization / Major</label>
+                  <select
+                    value={specialization}
+                    onChange={(e) => setSpecialization(e.target.value)}
+                    className={baseInputClass}
+                  >
+                    {['Computer Science', 'Information Technology', 'Artificial Intelligence', 'Data Science', 'Electronics', 'Electrical', 'Mechanical', 'Other'].map((sp) => (
+                      <option key={sp} value={sp}>{sp}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Institution Name</label>
                   <input
-                    type="number"
-                    value={graduationYear}
-                    onChange={(e) => setGraduationYear(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
+                    type="text"
+                    placeholder="e.g. Stanford University"
+                    value={institution}
+                    onChange={(e) => setInstitution(e.target.value)}
+                    className={baseInputClass}
                   />
                 </div>
-              )}
-            </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Current Status</label>
+                  <select
+                    value={educationStatus}
+                    onChange={(e) => setEducationStatus(e.target.value)}
+                    className={baseInputClass}
+                  >
+                    <option value="Currently Studying">Currently Studying</option>
+                    <option value="Graduated">Graduated</option>
+                    <option value="Expected to Graduate">Expected to Graduate</option>
+                  </select>
+                </div>
+
+                {educationStatus === 'Currently Studying' ? (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Current Year</label>
+                    <select
+                      value={currentYear}
+                      onChange={(e) => setCurrentYear(e.target.value)}
+                      className={baseInputClass}
+                    >
+                      {['1st Year', '2nd Year', '3rd Year', '4th Year', 'Final Year'].map((yr) => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Graduation Year</label>
+                    <input
+                      type="number"
+                      value={graduationYear}
+                      onChange={(e) => setGraduationYear(e.target.value)}
+                      className={baseInputClass}
+                    />
+                  </div>
+                )}
+              </div>
+            </AuroraCard>
           </motion.div>
         )}
 
         {/* STEP 3: Languages & Technologies */}
         {step === 3 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-1.5">Programming Languages & Technologies</h1>
-              <p className="text-xs text-zinc-400">Select what you know. DevForge uses this to highlight your skill coverage vs gaps.</p>
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+            <div className="text-center sm:text-left mb-2">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3 tracking-tight">Languages & Frameworks</h1>
+              <p className="text-sm text-muted-foreground font-medium">Select your tech stack. We'll use this to highlight your coverage vs industry requirements.</p>
             </div>
 
             {/* Programming Languages */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-zinc-300">Programming Languages</label>
-                <div className="relative w-48">
-                  <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2" />
+            <AuroraCard padded className="space-y-4 border-border/50 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Programming Languages</label>
+                <div className="relative w-full sm:w-56">
+                  <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
                   <input
                     type="text"
                     placeholder="Search language..."
                     value={langSearch}
                     onChange={(e) => setLangSearch(e.target.value)}
-                    className="w-full pl-8 pr-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+              <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
                 {ALL_LANGUAGES.filter((l) => l.toLowerCase().includes(langSearch.toLowerCase())).map((lang) => {
                   const active = selectedLanguages.includes(lang);
                   return (
@@ -516,10 +522,10 @@ export default function OnboardingPage() {
                       key={lang}
                       type="button"
                       onClick={() => toggleLanguage(lang)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all duration-200 ${
                         active
-                          ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
-                          : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                          ? 'bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20 scale-[1.02]'
+                          : 'bg-background text-foreground border-border hover:border-primary/50 hover:bg-card'
                       }`}
                     >
                       {active ? '✓ ' : ''}{lang}
@@ -527,32 +533,32 @@ export default function OnboardingPage() {
                   );
                 })}
               </div>
-            </div>
+            </AuroraCard>
 
             {/* Frameworks & Tech */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-zinc-300">Technologies & Frameworks</label>
-                <div className="relative w-48">
-                  <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2" />
+            <AuroraCard padded className="space-y-4 border-border/50 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Core Technologies</label>
+                <div className="relative w-full sm:w-56">
+                  <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
                   <input
                     type="text"
                     placeholder="Search tech..."
                     value={techSearch}
                     onChange={(e) => setTechSearch(e.target.value)}
-                    className="w-full pl-8 pr-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 focus:outline-none"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
                   />
                 </div>
               </div>
 
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+              <div className="space-y-5 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
                 {TECH_CATEGORIES.map((cat) => {
                   const filtered = cat.items.filter((item) => item.toLowerCase().includes(techSearch.toLowerCase()));
                   if (filtered.length === 0) return null;
                   return (
-                    <div key={cat.name} className="space-y-1.5">
-                      <div className="text-[11px] font-bold text-zinc-500">{cat.name}</div>
-                      <div className="flex flex-wrap gap-1.5">
+                    <div key={cat.name} className="space-y-2">
+                      <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">{cat.name}</div>
+                      <div className="flex flex-wrap gap-2">
                         {filtered.map((item) => {
                           const active = selectedTech.includes(item);
                           return (
@@ -560,10 +566,10 @@ export default function OnboardingPage() {
                               key={item}
                               type="button"
                               onClick={() => toggleTech(item)}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                              className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold border transition-all duration-200 ${
                                 active
-                                  ? 'bg-purple-600 text-white border-purple-500 shadow-sm'
-                                  : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                                  ? 'bg-secondary-accent text-white border-secondary-accent shadow-sm shadow-secondary-accent/20 scale-[1.02]'
+                                  : 'bg-background text-foreground border-border hover:border-secondary-accent/50 hover:bg-card'
                               }`}
                             >
                               {active ? '✓ ' : ''}{item}
@@ -575,64 +581,66 @@ export default function OnboardingPage() {
                   );
                 })}
               </div>
-            </div>
+            </AuroraCard>
           </motion.div>
         )}
 
         {/* STEP 4: Career Goals & Target Companies */}
         {step === 4 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-1.5">Career Goals & Target Companies</h1>
-              <p className="text-xs text-zinc-400">Specify target companies to tailor interview questions and roadmap focus.</p>
+          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+            <div className="text-center sm:text-left mb-2">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3 tracking-tight">Career Goals & Targets</h1>
+              <p className="text-sm text-muted-foreground font-medium">Specify target companies to tailor interview questions and roadmap generation.</p>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Primary Career Goal</label>
-              <textarea
-                rows={2}
-                value={careerGoal}
-                onChange={(e) => setCareerGoal(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
-                placeholder="e.g. Land a Backend Developer position in 3 months"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Weekly Commitment (Hours)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={80}
-                  value={weeklyLearningHours}
-                  onChange={(e) => setWeeklyLearningHours(Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
+            <AuroraCard padded className="space-y-4 border-border/50 shadow-sm">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Primary Career Goal</label>
+                <textarea
+                  rows={2}
+                  value={careerGoal}
+                  onChange={(e) => setCareerGoal(e.target.value)}
+                  className={baseInputClass}
+                  placeholder="e.g. Land a Backend Developer position in 3 months"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">GitHub Username (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. octocat"
-                  value={githubUsername}
-                  onChange={(e) => setGithubUsername(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Weekly Commitment (Hours)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={80}
+                    value={weeklyLearningHours}
+                    onChange={(e) => setWeeklyLearningHours(Number(e.target.value))}
+                    className={baseInputClass}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">GitHub Username (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. octocat"
+                    value={githubUsername}
+                    onChange={(e) => setGithubUsername(e.target.value)}
+                    className={baseInputClass}
+                  />
+                </div>
               </div>
-            </div>
+            </AuroraCard>
 
             {/* Target Companies Suggestions */}
-            <div className="space-y-3">
-              <label className="block text-xs font-semibold text-zinc-300">Target Companies</label>
+            <AuroraCard padded className="space-y-4 border-border/50 shadow-sm">
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Target Companies</label>
 
               {/* Selected Chips */}
-              <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-zinc-900 border border-zinc-800 min-h-[44px]">
+              <div className="flex flex-wrap gap-2 p-3.5 rounded-xl bg-card border border-border min-h-[52px] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                 {targetCompanies.map((c) => (
-                  <span key={c} className="px-2.5 py-1 rounded-lg bg-blue-600/20 text-blue-300 text-xs border border-blue-500/30 flex items-center gap-1.5">
+                  <span key={c} className="px-3 py-1 rounded-lg bg-primary/10 text-primary text-sm font-semibold border border-primary/20 flex items-center gap-1.5">
                     <span>{c}</span>
-                    <button type="button" onClick={() => removeCompany(c)} className="hover:text-white font-bold">×</button>
+                    <button type="button" onClick={() => removeCompany(c)} className="hover:text-primary-foreground hover:bg-primary rounded-full w-4 h-4 flex items-center justify-center transition-colors">×</button>
                   </span>
                 ))}
                 <input
@@ -647,18 +655,18 @@ export default function OnboardingPage() {
                       setCompanyInput('');
                     }
                   }}
-                  className="flex-1 bg-transparent text-xs text-zinc-100 focus:outline-none min-w-[150px]"
+                  className="flex-1 bg-transparent text-sm text-foreground focus:outline-none min-w-[200px] placeholder:text-muted-foreground/60"
                 />
               </div>
 
               {/* Company Categories Suggestion Panel */}
-              <div className="space-y-3 pt-2">
-                <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Popular Technology Companies</div>
-                <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-3 pt-4 border-t border-border/50 mt-4">
+                <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">Popular Technology Companies</div>
+                <div className="space-y-4 max-h-56 overflow-y-auto pr-2 custom-scrollbar">
                   {COMPANY_CATEGORIES.map((cat) => (
-                    <div key={cat.category} className="space-y-1">
-                      <div className="text-[10px] text-zinc-400 font-semibold">{cat.category}</div>
-                      <div className="flex flex-wrap gap-1.5">
+                    <div key={cat.category} className="space-y-2">
+                      <div className="text-[11px] text-muted-foreground font-bold">{cat.category}</div>
+                      <div className="flex flex-wrap gap-2">
                         {cat.companies.map((comp) => {
                           const isSelected = targetCompanies.includes(comp);
                           return (
@@ -666,10 +674,10 @@ export default function OnboardingPage() {
                               key={comp}
                               type="button"
                               onClick={() => (isSelected ? removeCompany(comp) : addCompany(comp))}
-                              className={`px-2.5 py-1 rounded-lg text-xs border transition-all ${
+                              className={`px-3 py-1.5 rounded-lg text-[13px] border transition-all duration-200 ${
                                 isSelected
-                                  ? 'bg-blue-600 text-white border-blue-500 font-semibold'
-                                  : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                                  ? 'bg-primary text-primary-foreground border-primary font-semibold shadow-sm'
+                                  : 'bg-background text-foreground font-medium border-border hover:border-primary/50 hover:bg-card'
                               }`}
                             >
                               {isSelected ? '✓ ' : '+ '}{comp}
@@ -681,43 +689,49 @@ export default function OnboardingPage() {
                   ))}
                 </div>
               </div>
-            </div>
+            </AuroraCard>
           </motion.div>
         )}
       </div>
 
       {/* Footer Navigation */}
-      <div className="max-w-3xl mx-auto w-full flex items-center justify-between pt-4 border-t border-zinc-800/80">
+      <div className="max-w-4xl mx-auto w-full flex items-center justify-between pt-6 border-t border-border/50">
         {step > 1 ? (
-          <button
-            type="button"
+          <AuroraButton
+            variant="outline"
             onClick={() => setStep(step - 1)}
-            className="px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-semibold text-zinc-300 flex items-center gap-2 border border-zinc-800"
+            className="px-6 rounded-xl text-sm font-bold shadow-sm"
           >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Back</span>
-          </button>
+            <span className="flex items-center gap-2">
+              <ChevronLeft className="w-4 h-4" />
+              Back
+            </span>
+          </AuroraButton>
         ) : <div />}
 
         {step < 4 ? (
-          <button
-            type="button"
+          <AuroraButton
+            variant="primary"
             onClick={() => setStep(step + 1)}
-            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white shadow-lg shadow-blue-600/20 flex items-center gap-2"
+            className="px-8 rounded-xl text-sm font-bold shadow-lg shadow-primary/20"
           >
-            <span>Next Step</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+            <span className="flex items-center gap-2">
+              Next Step
+              <ArrowRight className="w-4 h-4" />
+            </span>
+          </AuroraButton>
         ) : (
-          <button
-            type="button"
+          <AuroraButton
+            variant="primary"
             disabled={loading}
             onClick={handleSubmit}
-            className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-sm font-bold text-white shadow-xl shadow-blue-600/25 flex items-center gap-2 transition-all"
+            className="px-8 py-3.5 rounded-xl text-sm font-bold shadow-xl shadow-primary/25 hover:scale-105 transition-transform"
           >
-            {loading ? 'Configuring DevForge Command Center...' : 'Complete Setup & Open Command Center'}
-            <Sparkles className="w-4 h-4 fill-white" />
-          </button>
+            <span className="flex items-center gap-2">
+              {loading ? 'Configuring Studio...' : 'Enter Command Center'}
+              <Sparkles className="w-4 h-4 fill-current" />
+            </span>
+          </AuroraButton>
         )}
       </div>
     </div>

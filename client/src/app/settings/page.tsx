@@ -1,19 +1,78 @@
 'use client';
 
-import { useState } from 'react';
-import { Settings as SettingsIcon, Moon, Sun, Key, Download, Trash2, Shield, Bot } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Settings as SettingsIcon, Download, Shield, User, Camera, Mail, Lock, KeyRound, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { useAuth } from '@/context/AuthContext';
+import { AuroraButton } from '@/components/AuroraButton';
+import { AuroraCard } from '@/components/AuroraCard';
 
 export default function SettingsPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [geminiKey, setGeminiKey] = useState('');
-  const [clerkKey, setClerkKey] = useState('');
+  const { user, updateUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'data'>('profile');
+
+  // Profile Form State
+  const [name, setName] = useState('');
+  const [targetRole, setTargetRole] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setTargetRole(user.targetRole || '');
+    }
+  }, [user]);
+
+  // Security Form State
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    // Simulate API Call
+    setTimeout(() => {
+      const updatePayload: any = { name, targetRole };
+      if (avatarPreview) updatePayload.avatarUrl = avatarPreview;
+      updateUser(updatePayload);
+      setIsSavingProfile(false);
+      setProfileSuccess(true);
+      setTimeout(() => setProfileSuccess(false), 3000);
+    }, 1000);
+  };
+
+  const handleSendOtp = () => {
+    setIsSendingOtp(true);
+    setTimeout(() => {
+      setIsSendingOtp(false);
+      setOtpSent(true);
+    }, 1500);
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 1024 * 1024) {
+        alert('File is too large. Max 1MB allowed.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleExportData = () => {
     const data = {
-      user: 'DevForge Engineer',
+      user: user?.name || 'DevForge Engineer',
       exportedAt: new Date().toISOString(),
       platform: 'DevForge AI Career Command Center',
     };
@@ -26,79 +85,264 @@ export default function SettingsPage() {
     a.click();
   };
 
+  const baseInputClass = "w-full px-4 py-3 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/60";
+
+  const handleMobileMenuClick = useCallback(() => setMobileOpen(true), []);
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex">
+    <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        <Header onMobileMenuClick={() => setMobileOpen(true)} />
+        <Header onMobileMenuClick={handleMobileMenuClick} />
 
-        <main className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-4xl mx-auto w-full">
+        <main className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-5xl mx-auto w-full">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">
               <SettingsIcon className="w-4 h-4" />
               <span>Platform Configuration</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">System Settings</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">System Settings</h1>
           </div>
 
-          <div className="space-y-6">
-            {/* Theme & Appearance */}
-            <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800/80 space-y-4">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Sun className="w-4 h-4 text-amber-400" />
-                <span>Appearance & Design Theme</span>
-              </h2>
-              <div className="flex items-center justify-between text-xs text-zinc-300">
-                <span>Toggle Dark / Light Theme Mode</span>
-                <ThemeToggle />
-              </div>
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            {/* Tabs Sidebar */}
+            <div className="w-full md:w-64 flex md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 custom-scrollbar shrink-0">
+              <button
+                onClick={() => setActiveTab('profile')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                  activeTab === 'profile'
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                Profile Settings
+              </button>
+              <button
+                onClick={() => setActiveTab('security')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                  activeTab === 'security'
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                Security & Password
+              </button>
+              <button
+                onClick={() => setActiveTab('data')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                  activeTab === 'data'
+                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                <Download className="w-4 h-4" />
+                Data & Privacy
+              </button>
             </div>
 
-            {/* AI Preferences */}
-            <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800/80 space-y-4">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Bot className="w-4 h-4 text-purple-400" />
-                <span>AI & Service API Keys</span>
-              </h2>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                DevForge AI is pre-configured with active intelligent services. You can also provide custom Google Gemini or Clerk API keys via environment configuration.
-              </p>
+            {/* Tab Content */}
+            <div className="flex-1 w-full space-y-6">
+              {activeTab === 'profile' && (
+                <AuroraCard padded className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 border-border/50 shadow-sm">
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">Personal Information</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Update your photo and personal details here.</p>
+                  </div>
 
-              <div className="space-y-3 pt-2">
-                <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">Google Gemini API Key</label>
-                  <input
-                    type="password"
-                    placeholder="AIzaSy... (configured in .env)"
-                    value={geminiKey}
-                    onChange={(e) => setGeminiKey(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100"
-                  />
+                  <div className="flex items-center gap-6">
+                    <div 
+                      className="relative group cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleAvatarChange} 
+                        accept="image/jpeg, image/png, image/gif" 
+                        className="hidden" 
+                      />
+                      <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center overflow-hidden">
+                        {(avatarPreview || user?.avatarUrl) ? (
+                          <img src={avatarPreview || user?.avatarUrl!} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-3xl font-bold text-primary">{user?.name?.charAt(0).toUpperCase() || 'U'}</span>
+                        )}
+                      </div>
+                      <div className="absolute inset-0 bg-background/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity rounded-full flex flex-col items-center justify-center gap-1 border border-border">
+                        <Camera className="w-5 h-5 text-foreground" />
+                        <span className="text-[10px] font-bold text-foreground">Update</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-semibold text-foreground text-sm">Profile Picture</h3>
+                      <p className="text-xs text-muted-foreground">JPG, GIF or PNG. 1MB max.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Full Name</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className={baseInputClass}
+                        placeholder="Your full name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Email Address</label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-muted-foreground absolute left-4 top-3.5" />
+                        <input
+                          type="email"
+                          value={user?.email || ''}
+                          disabled
+                          className={`${baseInputClass} pl-10 opacity-70 cursor-not-allowed`}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">Email cannot be changed here.</p>
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Target Role</label>
+                      <input
+                        type="text"
+                        value={targetRole}
+                        onChange={(e) => setTargetRole(e.target.value)}
+                        className={baseInputClass}
+                        placeholder="e.g. Full Stack Developer"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex items-center justify-end border-t border-border/50 gap-4">
+                    {profileSuccess && (
+                      <span className="text-sm font-semibold text-success flex items-center gap-1.5 animate-in fade-in">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Saved successfully
+                      </span>
+                    )}
+                    <AuroraButton variant="primary" onClick={handleSaveProfile} disabled={isSavingProfile}>
+                      {isSavingProfile ? 'Saving...' : 'Save Changes'}
+                    </AuroraButton>
+                  </div>
+                </AuroraCard>
+              )}
+
+              {activeTab === 'security' && (
+                <AuroraCard padded className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 border-border/50 shadow-sm">
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                      <Lock className="w-5 h-5 text-primary" />
+                      Security & Password
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1">Manage your password and secure your account.</p>
+                  </div>
+
+                  {!otpSent ? (
+                    <div className="space-y-6">
+                      <div className="p-4 rounded-xl bg-secondary/50 border border-border/50 flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <KeyRound className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-foreground">Update Password via OTP</h3>
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                            To ensure your account's security, we will send a One-Time Password (OTP) to your registered email address ({user?.email}).
+                          </p>
+                        </div>
+                      </div>
+                      <AuroraButton variant="primary" onClick={handleSendOtp} disabled={isSendingOtp}>
+                        {isSendingOtp ? 'Sending OTP...' : 'Send OTP to Email'}
+                      </AuroraButton>
+                    </div>
+                  ) : (
+                    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                      <div className="p-4 rounded-xl bg-success/10 border border-success/20 flex items-center gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-success" />
+                        <span className="text-sm font-medium text-success">OTP has been sent to your email.</span>
+                      </div>
+                      
+                      <div className="space-y-4 max-w-md">
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Enter OTP</label>
+                          <input
+                            type="text"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            className={baseInputClass}
+                            placeholder="6-digit code"
+                            maxLength={6}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">New Password</label>
+                          <input
+                            type="text"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className={baseInputClass}
+                            placeholder="••••••••"
+                            style={{ WebkitTextSecurity: 'disc' }}
+                          />
+                        </div>
+                        <div className="pt-2">
+                          <AuroraButton variant="primary" className="w-full" onClick={() => {
+                            // Simulate reset
+                            setOtpSent(false);
+                            setOtp('');
+                            setNewPassword('');
+                            alert('Password updated successfully!');
+                          }}>
+                            Confirm New Password
+                          </AuroraButton>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </AuroraCard>
+              )}
+
+              {activeTab === 'data' && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <AuroraCard padded className="border-border/50 shadow-sm space-y-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground">Export Data</h2>
+                      <p className="text-sm text-muted-foreground mt-1">Download all your career data, skills, and progress as a JSON file.</p>
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        onClick={handleExportData}
+                        className="px-6 py-3 rounded-xl bg-secondary hover:bg-secondary/80 border border-border text-sm font-bold text-foreground flex items-center gap-2 transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Export Career Data</span>
+                      </button>
+                    </div>
+                  </AuroraCard>
+
+                  <AuroraCard padded className="border-danger/20 bg-danger/5 shadow-sm space-y-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-danger flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5" />
+                        Danger Zone
+                      </h2>
+                      <p className="text-sm text-danger/80 mt-1">Permanently delete your DevForge account and all associated data.</p>
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        className="px-6 py-3 rounded-xl bg-danger hover:bg-danger/90 text-white text-sm font-bold flex items-center gap-2 transition-colors shadow-md shadow-danger/20"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Delete Account</span>
+                      </button>
+                    </div>
+                  </AuroraCard>
                 </div>
-              </div>
-            </div>
-
-            {/* Data Export & Account */}
-            <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800/80 space-y-4">
-              <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <Shield className="w-4 h-4 text-emerald-400" />
-                <span>Data Privacy & Export</span>
-              </h2>
-
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
-                <div>
-                  <div className="text-xs font-bold text-zinc-200">Export Career Data JSON</div>
-                  <div className="text-[11px] text-zinc-500">Download all your skills, roadmap items, projects, and interview records.</div>
-                </div>
-                <button
-                  onClick={handleExportData}
-                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Export Data</span>
-                </button>
-              </div>
+              )}
             </div>
           </div>
         </main>

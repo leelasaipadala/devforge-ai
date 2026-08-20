@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Map, CheckCircle2, Circle, Clock, Sparkles, RefreshCw, AlertCircle, Plus } from 'lucide-react';
+import { Map, CheckCircle2, Circle, Clock, Sparkles, RefreshCw, AlertCircle } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ApiClient } from '@/lib/api';
+import { AuroraCard } from '@/components/AuroraCard';
+import { AuroraButton } from '@/components/AuroraButton';
+import { AuroraBadge } from '@/components/AuroraBadge';
+import { AuroraProgress } from '@/components/AuroraProgress';
 
 export default function RoadmapPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -56,43 +59,46 @@ export default function RoadmapPage() {
       setGenerating(false);
     }
   };
+  const handleMobileMenuClick = useCallback(() => setMobileOpen(true), []);
+
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-200">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        <Header onMobileMenuClick={() => setMobileOpen(true)} />
+        <Header onMobileMenuClick={handleMobileMenuClick} />
 
-        <main className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto w-full">
+        <main className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-4xl mx-auto w-full">
           {/* Header Bar */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-blue-500">
+              <div className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-primary uppercase mb-2">
                 <Map className="w-4 h-4" />
-                <span>Phased Career Roadmap</span>
+                <span>Career Architecture</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground">
-                {roadmap?.title || 'Developer Career Roadmap'}
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                {roadmap?.title || 'Phased Career Roadmap'}
               </h1>
-              <p className="text-xs text-muted-foreground mt-1">
-                {roadmap?.description || 'Personalized step-by-step career path tailored to your goal.'}
+              <p className="text-sm text-muted-foreground mt-2 font-medium">
+                {roadmap?.description || 'Your personalized step-by-step career path tailored to your goal.'}
               </p>
             </div>
 
-            <button
+            <AuroraButton
               onClick={handleRegenerate}
               disabled={generating}
-              className="px-4 py-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 font-semibold text-xs flex items-center gap-2 transition-all shrink-0 disabled:opacity-50"
+              variant="ai"
+              className="gap-2 shrink-0"
             >
               <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
               <span>{generating ? 'Generating AI Roadmap...' : 'Generate Roadmap'}</span>
-            </button>
+            </AuroraButton>
           </div>
 
           {/* Error Banner */}
           {errorMsg && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-500 flex items-center gap-3">
+            <div className="p-4 rounded-xl bg-danger/10 border border-danger/20 text-[13px] font-medium text-danger flex items-center gap-3">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -100,103 +106,119 @@ export default function RoadmapPage() {
 
           {/* Roadmap Loading / Empty State / Content */}
           {loading ? (
-            <div className="p-12 text-center text-xs text-muted-foreground animate-pulse">Loading career roadmap...</div>
+            <div className="p-16 text-center">
+              <RefreshCw className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
+              <p className="text-[14px] text-muted-foreground font-medium">Loading career roadmap...</p>
+            </div>
           ) : roadmap?.phases && roadmap.phases.length > 0 ? (
-            <div className="space-y-6">
+            <div className="space-y-8 relative before:absolute before:inset-0 before:ml-7 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
               {roadmap.phases.map((phase: any, index: number) => (
-                <div
-                  key={phase.id || index}
-                  className="p-6 rounded-2xl bg-card border border-border space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-border pb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 uppercase">
+                <div key={phase.id || index} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                  
+                  {/* Timeline Node */}
+                  <div className="flex items-center justify-center w-14 h-14 rounded-full border-4 border-background bg-secondary text-primary font-bold z-10 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all">
+                    {index + 1}
+                  </div>
+                  
+                  {/* Phase Card */}
+                  <AuroraCard className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] space-y-5 hover:border-primary/40 transition-colors">
+                    <div className="flex flex-col gap-2 border-b border-border/50 pb-4">
+                      <div className="flex items-center justify-between">
+                        <AuroraBadge variant={phase.completion === 100 ? 'success' : 'primary'} className="uppercase tracking-wide">
                           Phase {index + 1}
-                        </span>
-                        <h2 className="text-lg font-bold text-foreground">{phase.title}</h2>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{phase.description}</p>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{phase.estimatedEffort || '3 weeks'}</span>
-                      </div>
-                      <span className="font-bold text-blue-500">{phase.completion || 0}% Complete</span>
-                    </div>
-                  </div>
-
-                  {/* Skills & Topics Badges */}
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {phase.skills?.map((sk: string, i: number) => (
-                      <span key={i} className="px-2.5 py-1 rounded-lg bg-secondary text-foreground text-xs border border-border">
-                        ⚡ {sk}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Phase Action Items Checkboxes */}
-                  <div className="space-y-2 pt-2">
-                    {phase.items?.map((item: any) => (
-                      <div
-                        key={item.id}
-                        onClick={() => handleToggleItem(phase.id, item.id, item.completed)}
-                        className="p-3 rounded-xl bg-secondary/60 border border-border hover:bg-accent transition-colors flex items-center justify-between cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-3">
-                          {item.completed ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                          ) : (
-                            <Circle className="w-5 h-5 text-muted-foreground group-hover:text-foreground shrink-0" />
-                          )}
-                          <span className={`text-xs ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                            {item.title}
-                          </span>
+                        </AuroraBadge>
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{phase.estimatedEffort || '3 weeks'}</span>
                         </div>
-                        {item.estimatedHours && (
-                          <span className="text-[10px] text-muted-foreground font-mono">{item.estimatedHours}h est</span>
-                        )}
                       </div>
-                    ))}
-                  </div>
+                      <h2 className="text-lg font-bold text-foreground">{phase.title}</h2>
+                      <p className="text-[13px] text-muted-foreground font-medium leading-relaxed">{phase.description}</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                        <span>Progress</span>
+                        <span>{phase.completion || 0}%</span>
+                      </div>
+                      <AuroraProgress 
+                        value={phase.completion || 0} 
+                        colorVariant={phase.completion === 100 ? 'success' : 'primary'} 
+                      />
+                    </div>
+
+                    {/* Skills & Topics Badges */}
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {phase.skills?.map((sk: string, i: number) => (
+                        <span key={i} className="px-2.5 py-1 rounded-md bg-secondary text-foreground text-[11px] font-semibold border border-border/50 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-ai" />
+                          {sk}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Phase Action Items Checkboxes */}
+                    <div className="space-y-2 pt-3 border-t border-border/50">
+                      {phase.items?.map((item: any) => (
+                        <div
+                          key={item.id}
+                          onClick={() => handleToggleItem(phase.id, item.id, item.completed)}
+                          className="p-3 rounded-xl bg-secondary/30 border border-transparent hover:border-border hover:bg-secondary transition-all flex items-center justify-between cursor-pointer group/item"
+                        >
+                          <div className="flex items-start gap-3">
+                            {item.completed ? (
+                              <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-0.5" />
+                            ) : (
+                              <Circle className="w-4 h-4 text-muted-foreground group-hover/item:text-foreground shrink-0 mt-0.5" />
+                            )}
+                            <span className={`text-[13px] font-medium leading-relaxed ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                              {item.title}
+                            </span>
+                          </div>
+                          {item.estimatedHours && (
+                            <span className="text-[10px] text-muted-foreground font-mono font-bold bg-background px-1.5 py-0.5 rounded ml-2 shrink-0 border border-border/50">
+                              {item.estimatedHours}h
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </AuroraCard>
                 </div>
               ))}
             </div>
           ) : (
             /* Empty State */
-            <div className="p-12 text-center rounded-2xl bg-card border border-border space-y-4 max-w-lg mx-auto my-8">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 mx-auto">
-                <Map className="w-6 h-6" />
+            <AuroraCard className="flex flex-col items-center justify-center text-center space-y-5 max-w-xl mx-auto my-12 py-12 border-dashed border-2">
+              <div className="w-16 h-16 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto">
+                <Map className="w-8 h-8" strokeWidth={1.5} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-foreground mb-1">No roadmap yet</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <h3 className="text-xl font-bold text-foreground mb-2">No roadmap yet</h3>
+                <p className="text-[14px] text-muted-foreground leading-relaxed max-w-sm mx-auto font-medium">
                   Complete your career setup to generate your personalized learning roadmap.
                 </p>
               </div>
-              <div className="flex items-center justify-center gap-3 pt-2">
-                <Link
-                  href="/onboarding"
-                  className="px-4 py-2 rounded-xl bg-secondary hover:bg-accent text-xs font-semibold text-foreground border border-border"
-                >
-                  Complete Setup
+              <div className="flex items-center justify-center gap-3 pt-4">
+                <Link href="/settings">
+                  <AuroraButton variant="secondary">
+                    Complete Setup
+                  </AuroraButton>
                 </Link>
-                <button
+                <AuroraButton
                   onClick={handleRegenerate}
                   disabled={generating}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white shadow-lg shadow-blue-600/20 flex items-center gap-2"
+                  variant="ai"
+                  className="gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Generate Roadmap</span>
-                </button>
+                </AuroraButton>
               </div>
-            </div>
+            </AuroraCard>
           )}
         </main>
       </div>
     </div>
   );
 }
-

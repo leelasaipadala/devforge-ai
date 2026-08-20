@@ -22,7 +22,7 @@ export function DevForgeLogo({
 
   const currentDimension = iconDimensions[size];
 
-  // SVG Abstract Forge Mark Component
+  // SVG Abstract Forge Mark Component (Aurora Atelier: Geometric D + Upward trajectory)
   const ForgeMarkIcon = (
     <svg
       className={`${currentDimension} ${className}`}
@@ -32,33 +32,25 @@ export function DevForgeLogo({
       aria-label="DevForge AI Mark"
     >
       <defs>
-        <linearGradient id="df-grad-primary" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#2563EB" />
-          <stop offset="100%" stopColor="#8B5CF6" />
-        </linearGradient>
-        <linearGradient id="df-grad-spark" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#60A5FA" />
-          <stop offset="100%" stopColor="#C084FC" />
+        <linearGradient id="aurora-grad-primary" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="var(--color-primary)" />
+          <stop offset="100%" stopColor="var(--color-ai)" />
         </linearGradient>
       </defs>
 
-      {/* Background Rounded Shield */}
-      <rect width="32" height="32" rx="8" fill="url(#df-grad-primary)" fillOpacity="0.15" />
-      <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" stroke="url(#df-grad-primary)" strokeOpacity="0.4" />
-
-      {/* Upward Trajectory + Geometric F Mark */}
+      {/* Abstract D shape */}
       <path
-        d="M8 24V8H22M8 15H19"
-        stroke="url(#df-grad-primary)"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M6 6H14C20.6274 6 26 11.3726 26 18C26 24.6274 20.6274 30 14 30H6V6Z"
+        fill="url(#aurora-grad-primary)"
+        fillOpacity="0.15"
+        stroke="url(#aurora-grad-primary)"
+        strokeWidth="2"
       />
-
-      {/* Upward Spark Element */}
+      
+      {/* Upward trajectory arrow */}
       <path
-        d="M20 7L24 11M24 11L20 15M24 11H15"
-        stroke="url(#df-grad-spark)"
+        d="M11 21L21 11M21 11H14M21 11V18"
+        stroke="url(#aurora-grad-primary)"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -75,13 +67,14 @@ export function DevForgeLogo({
       aria-label="FORGE AI Icon"
     >
       <defs>
-        <linearGradient id="ai-spark-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8B5CF6" />
-          <stop offset="100%" stopColor="#3B82F6" />
-        </linearGradient>
+        <radialGradient id="aurora-ai-orb" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="var(--color-ai)" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="var(--color-secondary-accent)" stopOpacity="0.2" />
+        </radialGradient>
       </defs>
-      <circle cx="16" cy="16" r="14" fill="url(#ai-spark-grad)" fillOpacity="0.2" stroke="url(#ai-spark-grad)" strokeWidth="1.5" />
-      <path d="M16 6L18.5 13.5L26 16L18.5 18.5L16 26L13.5 18.5L6 16L13.5 13.5L16 6Z" fill="url(#ai-spark-grad)" />
+      <circle cx="16" cy="16" r="14" fill="url(#aurora-ai-orb)" />
+      <circle cx="16" cy="16" r="14" stroke="var(--color-ai)" strokeWidth="1" strokeOpacity="0.5" />
+      <path d="M16 8L18 14L24 16L18 18L16 24L14 18L8 16L14 14L16 8Z" fill="white" fillOpacity="0.9" />
     </svg>
   );
 
@@ -94,19 +87,19 @@ export function DevForgeLogo({
   }
 
   return (
-    <div className="flex items-center gap-2.5 group">
+    <div className="flex items-center gap-3 group">
       {ForgeMarkIcon}
 
       <div className="flex flex-col">
-        <span className="font-extrabold tracking-tight text-foreground flex items-center gap-1 text-base">
+        <span className="font-extrabold tracking-tight text-foreground flex items-center gap-1.5 text-base">
           DevForge
-          <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30">
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-ai/10 text-ai font-bold border border-ai/20">
             AI
           </span>
         </span>
         {variant === 'full' && (
-          <span className="text-[10px] text-muted-foreground font-semibold tracking-wide">
-            Career Command Center
+          <span className="text-[10px] text-muted-foreground font-medium tracking-wide">
+            Career Intelligence Engine
           </span>
         )}
       </div>

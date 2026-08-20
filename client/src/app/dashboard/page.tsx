@@ -1,29 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
   Bot,
-  BrainCircuit,
-  Map,
   FileText,
   FolderGit2,
   HelpCircle,
-  Briefcase,
-  BarChart3,
   TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
-  ArrowRight,
-  Plus,
-  Zap,
 } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { CardSkeleton } from '@/components/Skeletons';
 import { ApiClient } from '@/lib/api';
 import { Github } from '@/components/Icons';
+import { AuroraCard } from '@/components/AuroraCard';
+import { AuroraButton } from '@/components/AuroraButton';
+import { AuroraBadge } from '@/components/AuroraBadge';
+import { AuroraProgress } from '@/components/AuroraProgress';
+import { AuroraAIOrb } from '@/components/AuroraAIOrb';
 
 export default function DashboardPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,30 +31,29 @@ export default function DashboardPage() {
       try {
         const res: any = await ApiClient.get('/profile');
         setData(res);
-      } catch (err) {
-        console.error('Failed to load profile data:', err);
+      } catch (err: any) {
+        console.warn('Failed to load profile data, falling back to local data:', err?.message || 'Unknown error');
         setData({
           profile: {
             name: 'DevForge Engineer',
             targetRole: 'Full Stack Developer',
             careerGoal: 'Land a Software Engineer Role',
-            readinessScore: 78,
           },
           readinessData: {
-            overallScore: 78,
-            statusCategory: 'Competitive',
+            overallScore: 0,
+            statusCategory: 'Getting Started',
             categories: {
-              skillsScore: 82,
-              resumeScore: 75,
-              githubScore: 72,
-              projectsScore: 80,
-              interviewScore: 70,
+              skillsScore: 0,
+              resumeScore: 0,
+              githubScore: 0,
+              projectsScore: 0,
+              interviewScore: 0,
             },
             recommendations: [
-              'Complete 1 system design mock interview session.',
-              'Add Docker and CI/CD to your technical skills inventory.',
+              'Complete your profile setup to generate your career readiness score.',
+              'Upload your resume or connect GitHub to get started.',
             ],
-            disclaimer: 'Product-generated career readiness indicator based on profile metrics.',
+            disclaimer: 'Complete your profile to generate your official readiness score.',
           },
         });
       } finally {
@@ -71,219 +66,209 @@ export default function DashboardPage() {
   const profile = data?.profile || {};
   const readiness = data?.readinessData || {};
   const categories = readiness.categories || {
-    skillsScore: 80,
-    resumeScore: 70,
-    githubScore: 65,
-    projectsScore: 75,
-    interviewScore: 60,
+    skillsScore: 0,
+    resumeScore: 0,
+    githubScore: 0,
+    projectsScore: 0,
+    interviewScore: 0,
   };
+  const handleMobileMenuClick = useCallback(() => setMobileOpen(true), []);
+
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex transition-colors duration-200">
+    <div className="min-h-screen bg-background text-foreground flex transition-colors duration-300">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        <Header onMobileMenuClick={() => setMobileOpen(true)} readinessScore={readiness.overallScore || 78} />
+        <Header onMobileMenuClick={handleMobileMenuClick} readinessScore={readiness.overallScore || undefined} />
 
-        <main className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto w-full">
+        <main className="px-4 sm:px-6 lg:px-8 pb-8 space-y-6 max-w-7xl mx-auto w-full">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
               <CardSkeleton />
               <CardSkeleton />
               <CardSkeleton />
             </div>
           ) : (
             <>
-              {/* Welcome & Goal Banner */}
-              <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-blue-950/60 via-card to-purple-950/50 border border-border shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                <div>
-                  <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 mb-2">
-                    <Sparkles className="w-4 h-4" />
-                    <span>DevForge AI Command Center</span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-                    Welcome back, {profile.name || 'Developer'}
-                  </h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl">
-                    Target Role: <strong className="text-foreground">{profile.targetRole || 'Full Stack Developer'}</strong> • Goal:{' '}
-                    <span className="text-foreground">{profile.careerGoal || 'Land Software Engineering position'}</span>
-                  </p>
+              <header className="mb-8 mt-2">
+                <div className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-primary uppercase mb-2">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Career Command Center</span>
                 </div>
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+                  Build the career you're becoming.
+                </h1>
+                <p className="text-sm text-muted-foreground mt-3 max-w-2xl font-medium leading-relaxed">
+                  Welcome back, <strong className="text-foreground">{profile.name || 'Developer'}</strong>. 
+                  Targeting: <strong className="text-foreground">{profile.targetRole || 'Full Stack Developer'}</strong>
+                </p>
+              </header>
 
-                <Link
-                  href="/ai-coach"
-                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 shrink-0"
-                >
-                  <Bot className="w-4 h-4" />
-                  <span>Start FORGE AI Strategy Session</span>
-                </Link>
-              </div>
-
-              {/* DevForge Career Readiness Score Engine */}
-              <div className="p-6 sm:p-8 rounded-2xl bg-card border border-border shadow-xl space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pillar Assessment</span>
-                    <h2 className="text-xl font-bold text-foreground mt-1">DevForge Career Readiness Score</h2>
+              {/* Bento Grid Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                
+                {/* DevForge AI Insight Panel - Prominent */}
+                <AuroraCard className="md:col-span-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-ai/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                  
+                  <div className="shrink-0 relative z-10">
+                    <AuroraAIOrb size="lg" active={true} />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-3xl font-extrabold text-blue-500">
-                      {readiness.overallScore || 78} <span className="text-xs text-muted-foreground font-normal">/ 100</span>
+                  
+                  <div className="flex-1 space-y-4 relative z-10">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <AuroraBadge variant="ai">FORGE AI INSIGHT</AuroraBadge>
+                      </div>
+                      <p className="text-foreground font-medium text-[15px] leading-relaxed">
+                        {readiness.recommendations?.[0] ||
+                          'I recommend completing 1 mock system design practice on URL Shorteners and uploading your latest resume PDF to boost your ATS keyword score.'}
+                      </p>
                     </div>
-                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                      {readiness.statusCategory || 'Competitive'}
-                    </span>
+                    <Link href="/ai-coach">
+                      <AuroraButton variant="ai" className="gap-2 text-[13px] rounded-full px-5 shadow-ai/10">
+                        <Bot className="w-4 h-4" /> Start Strategy Session
+                      </AuroraButton>
+                    </Link>
                   </div>
-                </div>
+                </AuroraCard>
+
+                {/* Overall Readiness Score */}
+                <AuroraCard className="md:col-span-4 flex flex-col justify-center items-center text-center space-y-4">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Overall Readiness</span>
+                  <div className="text-5xl font-extrabold tracking-tighter text-foreground">
+                    {readiness.overallScore ?? 0}<span className="text-xl text-muted-foreground font-medium">/100</span>
+                  </div>
+                  <AuroraBadge variant="success" className="px-3 py-1 text-[11px]">
+                    {readiness.statusCategory || 'Getting Started'}
+                  </AuroraBadge>
+                </AuroraCard>
 
                 {/* 5 Pillar Breakdown Bar Gauges */}
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 pt-2">
-                  <div className="p-3.5 rounded-xl bg-secondary/60 border border-border text-left">
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <span className="text-muted-foreground font-medium">Skills Coverage</span>
-                      <span className="font-bold text-blue-500">{categories.skillsScore}%</span>
+                <AuroraCard className="md:col-span-12 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold">Pillar Assessment</h2>
+                    <Link href="/roadmap" className="text-[13px] font-semibold text-primary hover:underline">View Roadmap →</Link>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-5">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="font-semibold text-muted-foreground">Skills</span>
+                        <span className="font-bold text-foreground">{categories.skillsScore}%</span>
+                      </div>
+                      <AuroraProgress value={categories.skillsScore} colorVariant="primary" />
                     </div>
-                    <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                      <div className="bg-blue-500 h-full rounded-full" style={{ width: `${categories.skillsScore}%` }} />
+
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="font-semibold text-muted-foreground">Resume</span>
+                        <span className="font-bold text-foreground">{categories.resumeScore}%</span>
+                      </div>
+                      <AuroraProgress value={categories.resumeScore} colorVariant="secondary" className="[&>div>div]:bg-secondary-accent" />
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="font-semibold text-muted-foreground">GitHub</span>
+                        <span className="font-bold text-foreground">{categories.githubScore}%</span>
+                      </div>
+                      <AuroraProgress value={categories.githubScore} colorVariant="success" />
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="font-semibold text-muted-foreground">Projects</span>
+                        <span className="font-bold text-foreground">{categories.projectsScore}%</span>
+                      </div>
+                      <AuroraProgress value={categories.projectsScore} colorVariant="warning" />
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="font-semibold text-muted-foreground">Interviews</span>
+                        <span className="font-bold text-foreground">{categories.interviewScore}%</span>
+                      </div>
+                      <AuroraProgress value={categories.interviewScore} colorVariant="danger" />
                     </div>
                   </div>
-
-                  <div className="p-3.5 rounded-xl bg-secondary/60 border border-border text-left">
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <span className="text-muted-foreground font-medium">Resume ATS</span>
-                      <span className="font-bold text-purple-500">{categories.resumeScore}%</span>
-                    </div>
-                    <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                      <div className="bg-purple-500 h-full rounded-full" style={{ width: `${categories.resumeScore}%` }} />
-                    </div>
+                  
+                  <div className="pt-4 border-t border-border/50 text-[11px] text-muted-foreground font-medium">
+                    {readiness.disclaimer || 'Product-generated indicator based on profile input metrics.'}
                   </div>
-
-                  <div className="p-3.5 rounded-xl bg-secondary/60 border border-border text-left">
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <span className="text-muted-foreground font-medium">GitHub Profile</span>
-                      <span className="font-bold text-emerald-500">{categories.githubScore}%</span>
-                    </div>
-                    <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                      <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${categories.githubScore}%` }} />
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-secondary/60 border border-border text-left">
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <span className="text-muted-foreground font-medium">Portfolio Projects</span>
-                      <span className="font-bold text-amber-500">{categories.projectsScore}%</span>
-                    </div>
-                    <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                      <div className="bg-amber-500 h-full rounded-full" style={{ width: `${categories.projectsScore}%` }} />
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-secondary/60 border border-border text-left">
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <span className="text-muted-foreground font-medium">Interview Prep</span>
-                      <span className="font-bold text-indigo-500">{categories.interviewScore}%</span>
-                    </div>
-                    <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                      <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${categories.interviewScore}%` }} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-muted-foreground pt-2 border-t border-border">
-                  {readiness.disclaimer ||
-                    'Product-generated indicator based on profile input metrics. Not an official industry certification.'}
-                </div>
-              </div>
-
-              {/* Grid Widgets */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* AI Recommended Daily Action */}
-                <div className="p-6 rounded-2xl bg-card border border-border flex flex-col justify-between space-y-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Bot className="w-4 h-4 text-purple-400" />
-                      <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider">FORGE AI Daily Recommendation</span>
-                    </div>
-                    <p className="text-xs text-foreground leading-relaxed">
-                      {readiness.recommendations?.[0] ||
-                        'Complete 1 mock system design practice on URL Shorteners and upload your latest resume PDF to boost your ATS keyword score to 85+.'}
-                    </p>
-                  </div>
-                  <Link
-                    href="/ai-coach"
-                    className="w-full py-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-semibold border border-purple-500/30 text-center transition-colors block"
-                  >
-                    Ask FORGE AI How to Execute
-                  </Link>
-                </div>
+                </AuroraCard>
 
                 {/* Skill Gaps Preview */}
-                <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
+                <AuroraCard className="md:col-span-6 space-y-5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">Target Skill Gaps</span>
-                    <Link href="/skills" className="text-xs text-blue-500 hover:underline">
-                      Manage Skills →
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Priority Skill Gaps</span>
+                    <Link href="/skills" className="text-[12px] font-semibold text-primary hover:underline">
+                      Manage →
                     </Link>
                   </div>
                   <div className="space-y-3">
-                    <div className="p-2.5 rounded-lg bg-secondary/60 border border-border flex items-center justify-between text-xs">
-                      <span className="text-foreground font-medium">Docker Containerization</span>
-                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 text-[10px] font-semibold border border-amber-500/20">
-                        High Priority
-                      </span>
+                    <div className="p-3 rounded-xl bg-secondary/50 border border-border/50 flex items-center justify-between">
+                      <span className="text-[13px] font-semibold">Docker Containerization</span>
+                      <AuroraBadge variant="warning">High Priority</AuroraBadge>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-secondary/60 border border-border flex items-center justify-between text-xs">
-                      <span className="text-foreground font-medium">System Design Patterns</span>
-                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 text-[10px] font-semibold border border-amber-500/20">
-                        High Priority
-                      </span>
+                    <div className="p-3 rounded-xl bg-secondary/50 border border-border/50 flex items-center justify-between">
+                      <span className="text-[13px] font-semibold">System Design Patterns</span>
+                      <AuroraBadge variant="warning">High Priority</AuroraBadge>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-secondary/60 border border-border flex items-center justify-between text-xs">
-                      <span className="text-foreground font-medium">GraphQL API Design</span>
-                      <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 text-[10px] font-semibold border border-blue-500/20">
-                        Medium Priority
-                      </span>
+                    <div className="p-3 rounded-xl bg-secondary/50 border border-border/50 flex items-center justify-between">
+                      <span className="text-[13px] font-semibold">GraphQL API Design</span>
+                      <AuroraBadge variant="primary">Medium Priority</AuroraBadge>
                     </div>
                   </div>
-                </div>
+                </AuroraCard>
 
                 {/* Quick Career Actions */}
-                <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
-                  <span className="text-xs font-semibold uppercase text-muted-foreground">Quick Actions</span>
-                  <div className="grid grid-cols-2 gap-3">
+                <AuroraCard className="md:col-span-6 space-y-5">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Quick Actions</span>
+                  <div className="grid grid-cols-2 gap-4">
                     <Link
                       href="/resume"
-                      className="p-3 rounded-xl bg-secondary/80 hover:bg-accent border border-border text-xs text-foreground flex flex-col items-center justify-center text-center gap-1.5 transition-colors"
+                      className="p-4 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/50 flex flex-col items-center justify-center text-center gap-2.5 transition-colors group"
                     >
-                      <FileText className="w-5 h-5 text-purple-400" />
-                      <span>Upload Resume</span>
+                      <div className="p-2 rounded-full bg-background group-hover:bg-primary/10 transition-colors">
+                        <FileText className="w-5 h-5 text-primary" strokeWidth={2.5} />
+                      </div>
+                      <span className="text-[13px] font-semibold">Upload Resume</span>
                     </Link>
 
                     <Link
                       href="/github"
-                      className="p-3 rounded-xl bg-secondary/80 hover:bg-accent border border-border text-xs text-foreground flex flex-col items-center justify-center text-center gap-1.5 transition-colors"
+                      className="p-4 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/50 flex flex-col items-center justify-center text-center gap-2.5 transition-colors group"
                     >
-                      <Github className="w-5 h-5 text-emerald-500" />
-                      <span>Audit GitHub</span>
+                      <div className="p-2 rounded-full bg-background group-hover:bg-success/10 transition-colors">
+                        <Github className="w-5 h-5 text-success" />
+                      </div>
+                      <span className="text-[13px] font-semibold">Audit GitHub</span>
                     </Link>
 
                     <Link
                       href="/interview"
-                      className="p-3 rounded-xl bg-secondary/80 hover:bg-accent border border-border text-xs text-foreground flex flex-col items-center justify-center text-center gap-1.5 transition-colors"
+                      className="p-4 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/50 flex flex-col items-center justify-center text-center gap-2.5 transition-colors group"
                     >
-                      <HelpCircle className="w-5 h-5 text-indigo-500" />
-                      <span>Mock Interview</span>
+                      <div className="p-2 rounded-full bg-background group-hover:bg-secondary-accent/10 transition-colors">
+                        <HelpCircle className="w-5 h-5 text-secondary-accent" strokeWidth={2.5} />
+                      </div>
+                      <span className="text-[13px] font-semibold">Mock Interview</span>
                     </Link>
 
                     <Link
                       href="/projects"
-                      className="p-3 rounded-xl bg-secondary/80 hover:bg-accent border border-border text-xs text-foreground flex flex-col items-center justify-center text-center gap-1.5 transition-colors"
+                      className="p-4 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/50 flex flex-col items-center justify-center text-center gap-2.5 transition-colors group"
                     >
-                      <FolderGit2 className="w-5 h-5 text-amber-500" />
-                      <span>New Project</span>
+                      <div className="p-2 rounded-full bg-background group-hover:bg-warning/10 transition-colors">
+                        <FolderGit2 className="w-5 h-5 text-warning" strokeWidth={2.5} />
+                      </div>
+                      <span className="text-[13px] font-semibold">New Project</span>
                     </Link>
                   </div>
-                </div>
+                </AuroraCard>
+
               </div>
             </>
           )}
@@ -292,4 +277,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

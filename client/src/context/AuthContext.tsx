@@ -13,6 +13,9 @@ export interface User {
   experienceLevel?: string;
   educationLevel?: string;
   githubUsername?: string;
+  careerGoal?: string;
+  weeklyLearningHours?: number;
+  bio?: string;
   onboardingCompleted?: boolean;
   isDemo?: boolean;
 }
@@ -126,6 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const data = await ApiClient.get<{ success: boolean; profile: any }>('/profile');
       if (data && data.success && data.profile) {
         setBackendProfile({
+          name: data.profile.name || '',
           targetRole: data.profile.targetRole || 'Full Stack Developer',
           experienceLevel: data.profile.experienceLevel || 'Undergraduate Student',
           githubUsername: data.profile.githubUsername || '',
@@ -133,10 +137,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           avatarUrl: data.profile.avatarUrl || '',
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[AuthContext] Backend profile sync note:', err);
+      // Auto-logout if the server rejects the token as invalid or expired
+      if (err?.message && err.message.includes('expired or is invalid')) {
+        try {
+          await clerkSignOut();
+          if (typeof window !== 'undefined') window.location.href = '/auth/sign-in';
+        } catch (signOutErr) {
+          console.warn('[AuthContext] Auto-signout failed', signOutErr);
+        }
+      }
     }
-  }, [isClerkSignedIn]);
+  }, [isClerkSignedIn, clerkSignOut]);
 
   useEffect(() => {
     if (isClerkSignedIn) {
@@ -154,9 +167,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress || '';
     const fullName = clerkUser.fullName || `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || primaryEmail.split('@')[0] || 'Developer';
 
+    let resolvedName = backendProfile?.name || fullName || 'Developer';
+    if (resolvedName === 'Developer (Local)' || resolvedName === 'DevForge Developer' || resolvedName === 'DevForge Engineer') {
+      resolvedName = fullName || 'Developer';
+    }
+
     activeUser = {
       id: clerkUser.id,
-      name: fullName,
+      name: resolvedName,
       email: primaryEmail,
       targetRole: backendProfile?.targetRole || 'Full Stack Developer',
       avatarUrl: clerkUser.imageUrl || backendProfile?.avatarUrl,
@@ -222,7 +240,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const updateUser = (updatedData: Partial<User>) => {
+  const updateUser = async (updatedData: Partial<User>) => {
     if (isDemoMode && demoUser) {
       const updatedDemo = { ...demoUser, ...updatedData };
       setDemoUser(updatedDemo);
@@ -236,7 +254,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         );
       }
     } else {
-      setBackendProfile((prev) => ({ ...prev, ...updatedData }));
+      try {
+        await ApiClient.put('/profile', updatedData);
+        setBackendProfile((prev) => ({ ...prev, ...updatedData }));
+      } catch (err) {
+        console.error('[AuthContext] Failed to update backend profile:', err);
+      }
     }
   };
 

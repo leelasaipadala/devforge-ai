@@ -80,8 +80,8 @@ export class GeminiService {
       throw err;
     }
 
-    const primaryModel = config.geminiModel || 'gemini-1.5-flash';
-    const candidateModels = Array.from(new Set([primaryModel, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']));
+    const primaryModel = config.geminiModel || 'gemini-3.5-flash';
+    const candidateModels = Array.from(new Set([primaryModel, 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']));
 
     const maxRetries = 3;
     let lastError: any = null;
@@ -114,6 +114,9 @@ export class GeminiService {
           if (text && text.trim().length > 0) return text;
         } catch (err: any) {
           lastError = err;
+          if (process.env.NODE_ENV === 'development') {
+            console.error(`[GEMINI DEBUG] API Error:`, err);
+          }
           if (err?.code === 'GEMINI_TIMEOUT') throw err;
 
           const errStr = (err?.message || '').toLowerCase();

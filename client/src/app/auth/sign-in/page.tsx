@@ -8,7 +8,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, ShieldCheck, Mail, Lock, UserCheck, Loader2, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { DevForgeLogo } from '@/components/DevForgeLogo';
+import { AuroraButton } from '@/components/AuroraButton';
 import { formatClerkError } from '@/lib/clerkErrors';
+import { AuthLayout } from '@/components/auth/AuthLayout';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -21,6 +23,21 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Framer Motion Variants for smooth 60fps animations
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+    },
+    exit: { opacity: 0, scale: 0.98, transition: { duration: 0.2 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15, filter: 'blur(4px)' },
+    show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 300, damping: 24 } }
+  } as const;
 
   // Prefetch dashboard route for instant navigation after login
   useEffect(() => {
@@ -63,42 +80,19 @@ export default function SignInPage() {
     setIsSubmitting(true);
 
     try {
-      // Step 1: Create Sign-In Attempt with Clerk
       const signinAttempt = await clerk.client.signIn.create({
         identifier: email,
+        password,
       });
 
-      // If sign-in completed immediately
       if (signinAttempt.status === 'complete') {
         if (signinAttempt.createdSessionId) {
           await clerk.setActive({ session: signinAttempt.createdSessionId });
         }
         router.push('/dashboard');
         return;
-      }
-
-      // Step 2: Inspect supported first factors for password strategy
-      const supportedFactors = signinAttempt.supportedFirstFactors || [];
-      const passwordFactor = supportedFactors.find((f: any) => f.strategy === 'password');
-
-      if (passwordFactor) {
-        // Step 3: Attempt Password First Factor
-        const result = await signinAttempt.attemptFirstFactor({
-          strategy: 'password',
-          password,
-        });
-
-        if (result.status === 'complete') {
-          if (result.createdSessionId) {
-            await clerk.setActive({ session: result.createdSessionId });
-          }
-          router.push('/dashboard');
-          return;
-        } else {
-          setError('Sign in incomplete. Please verify your credentials and try again.');
-        }
       } else {
-        setError('No password sign-in method found for this account. If you signed up with Google, click "Continue with Google".');
+        setError('Sign in requires additional verification steps. Please try another method.');
       }
     } catch (err: any) {
       const rawMessage = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || '';
@@ -147,21 +141,11 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 transition-colors duration-200">
-      <motion.div
-        initial={{ opacity: 0, y: 12, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="w-full max-w-md p-8 rounded-2xl bg-card border border-border shadow-2xl space-y-6"
-      >
-        {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 group mb-2 justify-center">
-            <DevForgeLogo variant="full" size="lg" />
-          </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
-          <p className="text-xs text-muted-foreground">Career Command Center for Engineers & Developers</p>
-        </div>
+    <AuthLayout 
+      title="Welcome back" 
+      subtitle="Sign in to your command center to continue building your career."
+    >
+      <div className="space-y-6">
 
         <AnimatePresence mode="wait">
           {error && (
@@ -183,108 +167,127 @@ export default function SignInPage() {
           )}
         </AnimatePresence>
 
-        {!clerk?.loaded && (
-          <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-400 text-center font-medium">
-            Loading authentication...
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {!clerk?.loaded && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-card/80 backdrop-blur-md rounded-2xl"
+            >
+              <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
+              <p className="text-xs font-medium text-muted-foreground animate-pulse">Initializing Security...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <form onSubmit={handleSignIn} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">Email Address</label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="developer@company.com"
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-secondary/80 border border-border text-xs text-foreground focus:outline-none focus:border-blue-500 transition-colors"
-                required
-              />
-            </div>
-          </div>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" exit="exit">
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <motion.div variants={itemVariants}>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 ml-1">Email Address</label>
+              <div className="relative group">
+                <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3 transition-colors group-focus-within:text-primary" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="developer@company.com"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-secondary/30 border border-border/60 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 hover:bg-secondary/50 backdrop-blur-sm shadow-sm"
+                  required
+                />
+              </div>
+            </motion.div>
 
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs font-medium text-muted-foreground">Password</label>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert('Password reset options can be configured in your Clerk dashboard.');
-                }}
-                className="text-[11px] text-blue-500 hover:underline"
+            <motion.div variants={itemVariants}>
+              <div className="flex justify-between items-center mb-1.5 ml-1">
+                <label className="block text-xs font-semibold text-muted-foreground">Password</label>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert('Password reset options can be configured in your Clerk dashboard.');
+                  }}
+                  className="text-[11px] text-blue-500 font-medium hover:underline"
+                >
+                  Forgot password?
+                </a>
+              </div>
+              <div className="relative group">
+                <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3 transition-colors group-focus-within:text-primary" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-secondary/30 border border-border/60 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 hover:bg-secondary/50 backdrop-blur-sm shadow-sm"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </motion.div>
+
+            <motion.div variants={itemVariants} className="pt-2">
+              <AuroraButton
+                variant="primary"
+                type="submit"
+                disabled={isSubmitting || !clerk?.loaded}
+                className="w-full py-2.5 rounded-xl text-xs shadow-lg shadow-primary/20"
               >
-                Forgot password?
-              </a>
+                <span className="flex items-center justify-center gap-2">
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  <span className="font-semibold">{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
+                </span>
+              </AuroraButton>
+            </motion.div>
+          </form>
+
+          <motion.div variants={itemVariants}>
+            <div className="relative flex items-center justify-center my-4">
+              <div className="border-t border-border/80 w-full"></div>
+              <span className="bg-card px-3 text-[11px] text-muted-foreground font-semibold uppercase absolute rounded-full border border-border/50 py-0.5">Or</span>
             </div>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full pl-9 pr-10 py-2.5 rounded-xl bg-secondary/80 border border-border text-xs text-foreground focus:outline-none focus:border-blue-500 transition-colors"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+
+            <div className="space-y-3">
+              <AuroraButton
+                variant="outline"
+                onClick={handleGoogleSignIn}
+                disabled={!clerk?.loaded}
+                className="w-full py-2.5 rounded-xl text-xs shadow-sm bg-secondary/30 backdrop-blur-sm border border-border/60 hover:bg-secondary/60"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+                <span className="flex items-center justify-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <span className="font-semibold">Continue with Google</span>
+                </span>
+              </AuroraButton>
+
+              <AuroraButton
+                variant="ai"
+                onClick={handleDemoSignIn}
+                className="w-full py-2.5 rounded-xl text-xs shadow-md border border-ai/20"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <UserCheck className="w-4 h-4" />
+                  <span className="font-semibold">Try Demo Account</span>
+                </span>
+              </AuroraButton>
             </div>
-          </div>
+          </motion.div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting || !clerk?.loaded}
-            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all duration-150 active:scale-[0.99] shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            <span>{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
-          </button>
-        </form>
-
-        <div className="relative flex items-center justify-center my-4">
-          <div className="border-t border-border w-full"></div>
-          <span className="bg-card px-3 text-[11px] text-muted-foreground font-medium uppercase absolute">Or</span>
-        </div>
-
-        {/* Google OAuth & Isolated Demo buttons */}
-        <div className="space-y-2.5">
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={!clerk?.loaded}
-            className="w-full py-2.5 rounded-xl bg-secondary/80 hover:bg-accent text-foreground font-medium text-xs border border-border flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.99] disabled:opacity-50"
-          >
-            <ShieldCheck className="w-4 h-4 text-blue-500" />
-            <span>Continue with Google</span>
-          </button>
-
-          <button
-            onClick={handleDemoSignIn}
-            className="w-full py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-semibold text-xs border border-purple-500/30 flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.99]"
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>Try Demo Account</span>
-          </button>
-        </div>
-
-
-
-        {/* Footer */}
-        <div className="pt-4 border-t border-border text-xs text-muted-foreground flex justify-between">
-          <span>New to DevForge AI?</span>
-          <Link href="/auth/sign-up" className="text-blue-500 font-semibold hover:underline">
-            Create account
-          </Link>
-        </div>
-      </motion.div>
-    </div>
+          <motion.div variants={itemVariants} className="pt-4 text-xs text-center text-muted-foreground">
+            New to DevForge AI?{' '}
+            <Link href="/auth/sign-up" className="text-primary font-semibold hover:underline">
+              Create account
+            </Link>
+          </motion.div>
+        </motion.div>
+      </div>
+    </AuthLayout>
   );
 }
