@@ -105,6 +105,8 @@ export default function SignInPage() {
       } else if (rawMessage.toLowerCase().includes('already signed in') || errCode === 'session_exists') {
         router.replace('/dashboard');
         return;
+      } else if (rawMessage.toLowerCase().includes('verify this account') || rawMessage.toLowerCase().includes('restart registration')) {
+        setError('This account is either unverified or was created using Google. Please click "Continue with Google" or try the Demo Account.');
       } else {
         setError(formatClerkError(err));
       }

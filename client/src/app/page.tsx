@@ -82,7 +82,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
       {/* Navigation Bar */}
-      <header className="sticky top-0 z-50 h-20 bg-white/40 dark:bg-black/40 backdrop-blur-xl border-b border-border/50 px-6 lg:px-16 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 z-50 h-20 bg-white/40 backdrop-blur-xl border-b border-border/50 px-6 lg:px-16 flex items-center justify-between transition-colors">
         <Link href="/">
           <DevForgeLogo variant="full" size="lg" />
         </Link>
@@ -109,8 +109,8 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative pt-24 pb-32 px-6 lg:px-16 max-w-7xl mx-auto text-center overflow-hidden">
         {/* Background Ambient Glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-primary/10 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute top-1/3 left-1/3 w-[500px] h-[400px] bg-ai/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/3 left-1/3 w-[500px] h-[400px] bg-ai/10 rounded-full blur-3xl pointer-events-none" />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

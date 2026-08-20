@@ -28,7 +28,7 @@ export function AuroraBadge({
   return (
     <span
       className={cn(
-        'px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors',
+        'inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors',
         variants[variant],
         className
       )}
