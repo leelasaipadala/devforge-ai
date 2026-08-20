@@ -77,7 +77,12 @@ export const connectDB = async () => {
     }
   }
 
-  // TIER 3: Fall back to MongoDB Memory Server (Always succeeds & ensures zero downtime)
+  // TIER 3: Fall back to MongoDB Memory Server (Development ONLY to prevent OOM on free hosts)
+  if (config.nodeEnv === 'production') {
+    console.error('[Database Fatal] All database connections failed in production. Memory Server fallback is disabled to prevent memory limits.');
+    return;
+  }
+
   try {
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     memoryServerInstance = await MongoMemoryServer.create();
