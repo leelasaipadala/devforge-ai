@@ -23,6 +23,9 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetStep, setIsResetStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   // Framer Motion Variants for smooth 60fps animations
   const containerVariants = {
@@ -115,6 +118,65 @@ export default function SignInPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!email) {
+      setError('Please enter your email address first so we know where to send the OTP code.');
+      return;
+    }
+
+    if (!clerk?.loaded) return;
+    setIsSubmitting(true);
+
+    try {
+      await clerk.client.signIn.create({
+        strategy: 'reset_password_email_code',
+        identifier: email,
+      });
+      setIsResetStep(true);
+    } catch (err: any) {
+      setError(formatClerkError(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!otp || !newPassword) {
+      setError('Please enter both the OTP code and your new password.');
+      return;
+    }
+
+    if (!clerk?.loaded) return;
+    setIsSubmitting(true);
+
+    try {
+      const result = await clerk.client.signIn.attemptFirstFactor({
+        strategy: 'reset_password_email_code',
+        code: otp,
+        password: newPassword,
+      });
+
+      if (result.status === 'complete') {
+        if (result.createdSessionId) {
+          await clerk.setActive({ session: result.createdSessionId });
+        }
+        router.push('/dashboard');
+      } else {
+        setError('Additional verification is required to reset your password.');
+      }
+    } catch (err: any) {
+      setError(formatClerkError(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     if (clerk?.user || isSignedIn) {
       router.replace('/dashboard');
@@ -184,7 +246,64 @@ export default function SignInPage() {
         </AnimatePresence>
 
         <motion.div variants={containerVariants} initial="hidden" animate="show" exit="exit">
-          <form onSubmit={handleSignIn} className="space-y-4">
+          {isResetStep ? (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <motion.div variants={itemVariants}>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 ml-1">OTP Code (sent to email)</label>
+                <div className="relative group">
+                  <KeyRound className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3 transition-colors group-focus-within:text-primary" />
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="6-digit code"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-secondary/30 border border-border/60 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 hover:bg-secondary/50 backdrop-blur-sm shadow-sm"
+                    required
+                  />
+                </div>
+              </motion.div>
+              <motion.div variants={itemVariants}>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 ml-1">New Password</label>
+                <div className="relative group">
+                  <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3 transition-colors group-focus-within:text-primary" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-secondary/30 border border-border/60 text-xs text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 hover:bg-secondary/50 backdrop-blur-sm shadow-sm"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </motion.div>
+              <motion.div variants={itemVariants} className="pt-2">
+                <AuroraButton
+                  variant="primary"
+                  type="submit"
+                  disabled={isSubmitting || !clerk?.loaded}
+                  className="w-full py-2.5 rounded-xl text-xs shadow-lg shadow-primary/20"
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    <span className="font-semibold">{isSubmitting ? 'Resetting Password...' : 'Set New Password & Login'}</span>
+                  </span>
+                </AuroraButton>
+                <div className="mt-4 text-center">
+                  <button type="button" onClick={() => setIsResetStep(false)} className="text-[11px] text-muted-foreground hover:text-foreground underline transition-colors">
+                    Back to Sign In
+                  </button>
+                </div>
+              </motion.div>
+            </form>
+          ) : (
+            <form onSubmit={handleSignIn} className="space-y-4">
             <motion.div variants={itemVariants}>
               <label className="block text-xs font-semibold text-muted-foreground mb-1.5 ml-1">Email Address</label>
               <div className="relative group">
@@ -205,10 +324,7 @@ export default function SignInPage() {
                 <label className="block text-xs font-semibold text-muted-foreground">Password</label>
                 <a
                   href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Password reset options can be configured in your Clerk dashboard.');
-                  }}
+                  onClick={handleForgotPassword}
                   className="text-[11px] text-blue-500 font-medium hover:underline"
                 >
                   Forgot password?
@@ -248,7 +364,8 @@ export default function SignInPage() {
                 </span>
               </AuroraButton>
             </motion.div>
-          </form>
+            </form>
+          )}
 
           <motion.div variants={itemVariants}>
             <div className="relative flex items-center justify-center my-4">
