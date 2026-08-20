@@ -281,12 +281,11 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                           <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">New Password</label>
                           <input
-                            type="text"
+                            type="password"
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             className={baseInputClass}
                             placeholder="••••••••"
-                            style={{ WebkitTextSecurity: 'disc' }}
                           />
                         </div>
                         <div className="pt-2">

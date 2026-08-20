@@ -31,6 +31,7 @@ const TECHNOLOGIES = [
 
 export default function InterviewPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const handleMobileMenuClick = useCallback(() => setMobileOpen(true), []);
   const [activeTab, setActiveTab] = useState<'Practice' | 'Timed' | 'MockInterview'>('Practice');
   const [technology, setTechnology] = useState('Java');
   const [category, setCategory] = useState('All');

@@ -120,6 +120,7 @@ interface AnalyticsData {
 
 export default function AnalyticsPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const handleMobileMenuClick = useCallback(() => setMobileOpen(true), []);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
