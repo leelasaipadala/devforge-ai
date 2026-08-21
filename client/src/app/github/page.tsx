@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { ApiClient } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { AuroraCard } from '@/components/AuroraCard';
 import { AuroraButton } from '@/components/AuroraButton';
 import { AuroraBadge } from '@/components/AuroraBadge';
@@ -23,9 +24,12 @@ export default function GitHubPage() {
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   useEffect(() => {
-    loadGitHubProfile();
-  }, []);
+    if (!authLoading && isAuthenticated) {
+      loadGitHubProfile();
+    }
+  }, [authLoading, isAuthenticated]);
 
   async function loadGitHubProfile(userToFetch?: string) {
     setLoading(true);

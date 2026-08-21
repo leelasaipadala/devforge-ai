@@ -5,18 +5,21 @@ import { Settings as SettingsIcon, Download, Shield, User, Camera, Mail, Lock, K
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { useAuth } from '@/context/AuthContext';
+import { useUser } from '@clerk/nextjs';
 import { AuroraButton } from '@/components/AuroraButton';
 import { AuroraCard } from '@/components/AuroraCard';
 
 export default function SettingsPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, updateUser } = useAuth();
+  const { user: clerkUser } = useUser();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'data'>('profile');
 
   // Profile Form State
   const [name, setName] = useState('');
   const [targetRole, setTargetRole] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
@@ -29,30 +32,50 @@ export default function SettingsPage() {
   }, [user]);
 
   // Security Form State
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
-    // Simulate API Call
-    setTimeout(() => {
+    try {
       const updatePayload: any = { name, targetRole };
       if (avatarPreview) updatePayload.avatarUrl = avatarPreview;
-      updateUser(updatePayload);
-      setIsSavingProfile(false);
+      if (avatarFile) updatePayload.avatarFile = avatarFile;
+      await updateUser(updatePayload);
       setProfileSuccess(true);
       setTimeout(() => setProfileSuccess(false), 3000);
-    }, 1000);
+    } catch (err) {
+      console.error('Failed to save profile:', err);
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
-  const handleSendOtp = () => {
-    setIsSendingOtp(true);
-    setTimeout(() => {
-      setIsSendingOtp(false);
-      setOtpSent(true);
-    }, 1500);
+  const handleUpdatePassword = async () => {
+    if (!clerkUser) {
+      setPasswordError('You must be logged in to change your password.');
+      return;
+    }
+    if (!currentPassword || !newPassword) {
+      setPasswordError('Please fill in both password fields.');
+      return;
+    }
+    setIsUpdatingPassword(true);
+    setPasswordError('');
+    try {
+      await clerkUser.updatePassword({ currentPassword, newPassword });
+      setPasswordSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setTimeout(() => setPasswordSuccess(false), 3000);
+    } catch (err: any) {
+      setPasswordError(err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Failed to update password');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,6 +85,7 @@ export default function SettingsPage() {
         alert('File is too large. Max 1MB allowed.');
         return;
       }
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
@@ -242,66 +266,47 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground mt-1">Manage your password and secure your account.</p>
                   </div>
 
-                  {!otpSent ? (
-                    <div className="space-y-6">
-                      <div className="p-4 rounded-xl bg-secondary/50 border border-border/50 flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <KeyRound className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-bold text-foreground">Update Password via OTP</h3>
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                            To ensure your account's security, we will send a One-Time Password (OTP) to your registered email address ({user?.email}).
-                          </p>
-                        </div>
+                  <div className="space-y-6 max-w-md">
+                    {passwordError && (
+                      <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                        <span className="text-sm text-destructive">{passwordError}</span>
                       </div>
-                      <AuroraButton variant="primary" onClick={handleSendOtp} disabled={isSendingOtp}>
-                        {isSendingOtp ? 'Sending OTP...' : 'Send OTP to Email'}
-                      </AuroraButton>
-                    </div>
-                  ) : (
-                    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                    )}
+                    
+                    {passwordSuccess && (
                       <div className="p-4 rounded-xl bg-success/10 border border-success/20 flex items-center gap-3">
                         <CheckCircle2 className="w-5 h-5 text-success" />
-                        <span className="text-sm font-medium text-success">OTP has been sent to your email.</span>
+                        <span className="text-sm font-medium text-success">Password updated successfully!</span>
                       </div>
-                      
-                      <div className="space-y-4 max-w-md">
-                        <div className="space-y-2">
-                          <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Enter OTP</label>
-                          <input
-                            type="text"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            className={baseInputClass}
-                            placeholder="6-digit code"
-                            maxLength={6}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">New Password</label>
-                          <input
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className={baseInputClass}
-                            placeholder="••••••••"
-                          />
-                        </div>
-                        <div className="pt-2">
-                          <AuroraButton variant="primary" className="w-full" onClick={() => {
-                            // Simulate reset
-                            setOtpSent(false);
-                            setOtp('');
-                            setNewPassword('');
-                            alert('Password updated successfully!');
-                          }}>
-                            Confirm New Password
-                          </AuroraButton>
-                        </div>
-                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">Current Password</label>
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className={baseInputClass}
+                        placeholder="••••••••"
+                      />
                     </div>
-                  )}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">New Password</label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className={baseInputClass}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <div className="pt-2">
+                      <AuroraButton variant="primary" className="w-full" onClick={handleUpdatePassword} disabled={isUpdatingPassword}>
+                        {isUpdatingPassword ? 'Updating Password...' : 'Update Password'}
+                      </AuroraButton>
+                    </div>
+                  </div>
                 </AuroraCard>
               )}
 

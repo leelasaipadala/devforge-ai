@@ -5,6 +5,7 @@ import { FolderGit2, Plus, ExternalLink, Sparkles, CheckCircle2, Clock, Trash2, 
 import { Github } from '@/components/Icons';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import { useAuth } from '@/context/AuthContext';
 import { ApiClient } from '@/lib/api';
 import { AuroraCard } from '@/components/AuroraCard';
 import { AuroraButton } from '@/components/AuroraButton';
@@ -34,9 +35,13 @@ export default function ProjectsPage() {
     learnings: '',
   });
 
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   useEffect(() => {
-    loadProjects();
-  }, []);
+    if (!authLoading && isAuthenticated) {
+      loadProjects();
+    }
+  }, [authLoading, isAuthenticated]);
 
   async function loadProjects() {
     try {

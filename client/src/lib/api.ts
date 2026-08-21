@@ -67,10 +67,14 @@ export class ApiClient {
     }
 
     // Cache valid token for 15 seconds for ultra-fast subsequent requests
-    this.cachedToken = {
-      value: token,
-      expiry: Date.now() + 15000,
-    };
+    if (token) {
+      this.cachedToken = {
+        value: token,
+        expiry: Date.now() + 15000,
+      };
+    } else {
+      this.cachedToken = null;
+    }
 
     return token;
   }
@@ -124,7 +128,7 @@ export class ApiClient {
   public static async get<T>(endpoint: string): Promise<T> {
     try {
       const headers = await this.getHeaders();
-      const res = await fetch(`${API_BASE_URL}${endpoint}`, { headers });
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, { headers, cache: 'no-store' });
       return await this.handleResponse<T>(res);
     } catch (err: any) {
       if (err?.name === 'TypeError' && err?.message === 'Failed to fetch') {
@@ -141,6 +145,7 @@ export class ApiClient {
         method: 'POST',
         headers,
         body: body ? JSON.stringify(body) : undefined,
+        cache: 'no-store',
       });
       return await this.handleResponse<T>(res);
     } catch (err: any) {
@@ -158,6 +163,7 @@ export class ApiClient {
         method: 'PUT',
         headers,
         body: body ? JSON.stringify(body) : undefined,
+        cache: 'no-store',
       });
       return await this.handleResponse<T>(res);
     } catch (err: any) {
@@ -174,6 +180,7 @@ export class ApiClient {
       const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'DELETE',
         headers,
+        cache: 'no-store',
       });
       return await this.handleResponse<T>(res);
     } catch (err: any) {

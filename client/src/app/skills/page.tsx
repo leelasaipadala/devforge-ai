@@ -4,6 +4,7 @@ import {useState, useEffect, useCallback} from 'react';
 import { BrainCircuit, Plus, Trash2, CheckCircle2, Sparkles, X, Target, Filter } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import { useAuth } from '@/context/AuthContext';
 import { ApiClient } from '@/lib/api';
 import { AuroraCard } from '@/components/AuroraCard';
 import { AuroraButton } from '@/components/AuroraButton';
@@ -30,9 +31,13 @@ export default function SkillsPage() {
     projectEvidence: '',
   });
 
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!authLoading && isAuthenticated) {
+      loadData();
+    }
+  }, [authLoading, isAuthenticated]);
 
   async function loadData() {
     setLoading(true);

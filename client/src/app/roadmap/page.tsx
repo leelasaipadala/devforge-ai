@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Map, CheckCircle2, Circle, Clock, Sparkles, RefreshCw, AlertCircle } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import { useAuth } from '@/context/AuthContext';
 import { ApiClient } from '@/lib/api';
 import { AuroraCard } from '@/components/AuroraCard';
 import { AuroraButton } from '@/components/AuroraButton';
@@ -18,9 +19,13 @@ export default function RoadmapPage() {
   const [generating, setGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   useEffect(() => {
-    loadRoadmap();
-  }, []);
+    if (!authLoading && isAuthenticated) {
+      loadRoadmap();
+    }
+  }, [authLoading, isAuthenticated]);
 
   async function loadRoadmap() {
     setLoading(true);

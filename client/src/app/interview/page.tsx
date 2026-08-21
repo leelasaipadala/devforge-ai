@@ -4,6 +4,7 @@ import {useState, useEffect, useCallback} from 'react';
 import { HelpCircle, Send, CheckCircle2, Sparkles, Trophy, Award, Clock, PlayCircle, RotateCcw, Target, BookOpen, Layers, Code, GitMerge, FileText } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import { useAuth } from '@/context/AuthContext';
 import { ApiClient } from '@/lib/api';
 import { AuroraCard } from '@/components/AuroraCard';
 import { AuroraButton } from '@/components/AuroraButton';
@@ -60,9 +61,13 @@ export default function InterviewPage() {
 
   const currentTechObj = TECHNOLOGIES.find((t) => t.name === technology) || TECHNOLOGIES[0];
 
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   useEffect(() => {
-    loadQuestions(false);
-  }, [technology, category, difficulty]);
+    if (!authLoading && isAuthenticated) {
+      loadQuestions(false);
+    }
+  }, [technology, category, difficulty, authLoading, isAuthenticated]);
 
   // Timed mode countdown timer
   useEffect(() => {
@@ -73,8 +78,6 @@ export default function InterviewPage() {
       setTimerActive(false);
       handleEvaluate();
     }
-  const handleMobileMenuClick = useCallback(() => setMobileOpen(true), []);
-
     return () => clearInterval(interval);
   }, [timerActive, timeLeftSeconds]);
 

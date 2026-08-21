@@ -4,6 +4,7 @@ import {useState, useEffect, useCallback} from 'react';
 import { FileText, Upload, Sparkles, History, Target, Briefcase } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import { useAuth } from '@/context/AuthContext';
 import { ApiClient } from '@/lib/api';
 import { AuroraCard } from '@/components/AuroraCard';
 import { AuroraButton } from '@/components/AuroraButton';
@@ -19,9 +20,13 @@ export default function ResumePage() {
   const [analysis, setAnalysis] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
 
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   useEffect(() => {
-    loadHistory();
-  }, []);
+    if (!authLoading && isAuthenticated) {
+      loadHistory();
+    }
+  }, [authLoading, isAuthenticated]);
 
   async function loadHistory() {
     try {

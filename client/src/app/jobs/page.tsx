@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import { useAuth } from '@/context/AuthContext';
 import { ApiClient } from '@/lib/api';
 import { AuroraCard } from '@/components/AuroraCard';
 import { AuroraButton } from '@/components/AuroraButton';
@@ -72,9 +73,13 @@ export default function JobsPage() {
     description: '',
   });
 
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   useEffect(() => {
-    loadJobs();
-  }, []);
+    if (!authLoading && isAuthenticated) {
+      loadJobs();
+    }
+  }, [authLoading, isAuthenticated]);
 
   async function loadJobs() {
     setLoading(true);

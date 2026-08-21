@@ -163,8 +163,6 @@ export default function AnalyticsPage() {
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-  const handleMobileMenuClick = useCallback(() => setMobileOpen(true), []);
-
       return (
         <div className="bg-card/90 backdrop-blur-md border border-border/80 p-3 rounded-xl shadow-lg">
           <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>

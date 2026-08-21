@@ -10,6 +10,7 @@ export interface User {
   email: string;
   targetRole: string;
   avatarUrl?: string;
+  avatarFile?: File;
   experienceLevel?: string;
   educationLevel?: string;
   githubUsername?: string;
@@ -157,6 +158,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isClerkSignedIn, fetchBackendProfile]);
 
+  // Force re-sync if Clerk reverted the name (due to Google OAuth login)
+  useEffect(() => {
+    if (isClerkSignedIn && clerkUser && backendProfile) {
+      const currentClerkName = clerkUser.fullName || `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim();
+      const backendName = backendProfile.name;
+      if (backendName && backendName !== 'Developer' && backendName !== 'Developer (Local)' && currentClerkName !== backendName) {
+        const nameParts = backendName.split(' ');
+        clerkUser.update({ firstName: nameParts[0] || '', lastName: nameParts.slice(1).join(' ') || '' }).catch(() => {});
+      }
+    }
+  }, [isClerkSignedIn, clerkUser, backendProfile]);
+
   // Determine active User identity
   let activeUser: User | null = null;
   let isDemoMode = false;
@@ -177,7 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       name: resolvedName,
       email: primaryEmail,
       targetRole: backendProfile?.targetRole || 'Full Stack Developer',
-      avatarUrl: clerkUser.imageUrl || backendProfile?.avatarUrl,
+      avatarUrl: backendProfile?.avatarUrl || clerkUser.imageUrl,
       experienceLevel: backendProfile?.experienceLevel || 'Undergraduate Student',
       githubUsername: backendProfile?.githubUsername || '',
       onboardingCompleted: backendProfile?.onboardingCompleted ?? false,
@@ -257,8 +270,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         await ApiClient.put('/profile', updatedData);
         setBackendProfile((prev) => ({ ...prev, ...updatedData }));
+
+        // Sync with Clerk User
+        if (clerkUser) {
+          try {
+            if (updatedData.name) {
+              const nameParts = updatedData.name.split(' ');
+              const firstName = nameParts[0] || '';
+              const lastName = nameParts.slice(1).join(' ') || '';
+              await clerkUser.update({ firstName, lastName });
+            }
+            if (updatedData.avatarFile) {
+              await clerkUser.setProfileImage({ file: updatedData.avatarFile });
+            }
+          } catch (clerkErr) {
+            console.error('[AuthContext] Failed to sync profile with Clerk:', clerkErr);
+          }
+        }
       } catch (err) {
         console.error('[AuthContext] Failed to update backend profile:', err);
+        throw err;
       }
     }
   };

@@ -13,6 +13,7 @@ import {
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { CardSkeleton } from '@/components/Skeletons';
+import { useAuth } from '@/context/AuthContext';
 import { ApiClient } from '@/lib/api';
 import { Github } from '@/components/Icons';
 import { AuroraCard } from '@/components/AuroraCard';
@@ -26,8 +27,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
 
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   useEffect(() => {
     async function loadDashboard() {
+      if (authLoading || !isAuthenticated) return;
       try {
         const res: any = await ApiClient.get('/profile');
         setData(res);
@@ -61,7 +64,7 @@ export default function DashboardPage() {
       }
     }
     loadDashboard();
-  }, []);
+  }, [authLoading, isAuthenticated]);
 
   const profile = data?.profile || {};
   const readiness = data?.readinessData || {};
