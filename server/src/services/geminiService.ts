@@ -386,12 +386,12 @@ Return ONLY a valid JSON array of 5 objects matching this structure:
   private static getFallbackRoadmap(targetRole: string) {
     return {
       title: `Mastering ${targetRole}`,
-      description: `Structured career roadmap tailored for ${targetRole}.`,
+      description: `Structured career roadmap tailored for ${targetRole} (Simulated due to network block).`,
       phases: [
         {
           id: 'phase-1',
           title: 'Phase 1: Language & Core Tooling',
-          description: 'Establish foundational software engineering skills.',
+          description: 'Establish foundational software engineering skills and version control.',
           skills: ['Git', 'TypeScript', 'Data Structures'],
           topics: ['Version Control Best Practices', 'Asynchronous Programming', 'Object-Oriented & Functional Design'],
           projects: ['CLI Developer Utility Tool'],
@@ -401,6 +401,51 @@ Return ONLY a valid JSON array of 5 objects matching this structure:
           items: [
             { id: 'p1-1', title: 'Master Git branching and pull request workflows', completed: true, type: 'topic', estimatedHours: 5 },
             { id: 'p1-2', title: 'Implement core Data Structures (Linked Lists, Trees, HashMaps)', completed: false, type: 'topic', estimatedHours: 12 },
+          ],
+        },
+        {
+          id: 'phase-2',
+          title: 'Phase 2: Backend Architecture & APIs',
+          description: 'Design and build scalable server-side systems and databases.',
+          skills: ['Node.js', 'Express', 'MongoDB', 'REST APIs'],
+          topics: ['Authentication & JWT', 'Database Indexing', 'API Rate Limiting'],
+          projects: ['Authentication Microservice'],
+          estimatedEffort: '4 weeks',
+          status: 'Not Started',
+          completion: 0,
+          items: [
+            { id: 'p2-1', title: 'Build a secure REST API with JWT Auth', completed: false, type: 'topic', estimatedHours: 15 },
+            { id: 'p2-2', title: 'Learn NoSQL schema design and querying', completed: false, type: 'topic', estimatedHours: 10 },
+          ],
+        },
+        {
+          id: 'phase-3',
+          title: 'Phase 3: Frontend & State Management',
+          description: 'Develop responsive, interactive user interfaces.',
+          skills: ['React', 'Next.js', 'TailwindCSS'],
+          topics: ['Component Lifecycle', 'State Management (Redux/Context)', 'Server-Side Rendering'],
+          projects: ['Interactive Dashboard Application'],
+          estimatedEffort: '4 weeks',
+          status: 'Not Started',
+          completion: 0,
+          items: [
+            { id: 'p3-1', title: 'Master React Hooks and custom hooks', completed: false, type: 'topic', estimatedHours: 8 },
+            { id: 'p3-2', title: 'Implement a complex UI with global state', completed: false, type: 'topic', estimatedHours: 20 },
+          ],
+        },
+        {
+          id: 'phase-4',
+          title: 'Phase 4: DevOps, CI/CD & Deployment',
+          description: 'Automate testing, containerize applications, and deploy to the cloud.',
+          skills: ['Docker', 'GitHub Actions', 'AWS/Vercel'],
+          topics: ['Containerization', 'Continuous Integration', 'Cloud Architecture Basics'],
+          projects: ['Full Stack Automated Deployment'],
+          estimatedEffort: '3 weeks',
+          status: 'Not Started',
+          completion: 0,
+          items: [
+            { id: 'p4-1', title: 'Dockerize a full stack Node/React app', completed: false, type: 'topic', estimatedHours: 10 },
+            { id: 'p4-2', title: 'Set up automated tests in a CI/CD pipeline', completed: false, type: 'topic', estimatedHours: 10 },
           ],
         },
       ],
